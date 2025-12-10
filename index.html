@@ -10,8 +10,989 @@
     <!-- Include Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* All your existing CSS styles remain the same */
-        /* ... (keep all your existing CSS) ... */
+        :root {
+            --primary-color: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary-color: #6b7280;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --info-color: #3b82f6;
+            --background-color: #f9fafb;
+            --card-color: #ffffff;
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Theme Colors */
+        .theme-blue {
+            --primary-color: #2563eb;
+            --primary-dark: #1d4ed8;
+        }
+
+        .theme-dark {
+            --primary-color: #1f2937;
+            --primary-dark: #111827;
+            --background-color: #111827;
+            --card-color: #1f2937;
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --border-color: #374151;
+        }
+
+        .theme-green {
+            --primary-color: #059669;
+            --primary-dark: #047857;
+        }
+
+        .theme-purple {
+            --primary-color: #7c3aed;
+            --primary-dark: #6d28d9;
+        }
+
+        .theme-red {
+            --primary-color: #dc2626;
+            --primary-dark: #b91c1c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        /* Login Page Styles */
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 2rem;
+            background-color: var(--card-color);
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-header h1 {
+            color: var(--primary-color);
+            font-size: 1.875rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .login-header p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .login-error {
+            background-color: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+            font-size: 0.875rem;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+
+        .form-group input {
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s;
+            background-color: var(--card-color);
+            color: var(--text-primary);
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .login-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 0.875rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .theme-selector {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .theme-buttons {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            margin-top: 0.75rem;
+        }
+
+        .theme-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .theme-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .theme-btn.active {
+            border-color: var(--text-primary);
+        }
+
+        .theme-btn.blue {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        }
+
+        .theme-btn.dark {
+            background: linear-gradient(135deg, #1f2937, #111827);
+        }
+
+        .theme-btn.green {
+            background: linear-gradient(135deg, #059669, #047857);
+        }
+
+        .theme-btn.purple {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+        }
+
+        .theme-btn.red {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+        }
+
+        /* Main Application Styles */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background-color: var(--card-color);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-header h2 {
+            color: var(--primary-color);
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .sidebar-menu {
+            flex: 1;
+            padding: 1rem 0;
+            overflow-y: auto;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+        }
+
+        .menu-item:hover {
+            background-color: rgba(37, 99, 235, 0.05);
+            color: var(--primary-color);
+            border-left-color: var(--primary-color);
+        }
+
+        .menu-item.active {
+            background-color: rgba(37, 99, 235, 0.1);
+            color: var(--primary-color);
+            border-left-color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .menu-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .user-details h4 {
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .user-details p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .logout-btn {
+            margin-top: 1rem;
+            width: 100%;
+            padding: 0.75rem;
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .logout-btn:hover {
+            background-color: #fee2e2;
+            border-color: #fecaca;
+            color: #dc2626;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 1.5rem;
+            min-height: 100vh;
+        }
+
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-left h1 {
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .sync-status.online {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .sync-status.offline {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+
+        /* Content Sections */
+        .content-section {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Form Styles */
+        .form-section {
+            background-color: var(--card-color);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-title i {
+            color: var(--primary-color);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .form-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+
+        .form-label.required::after {
+            content: ' *';
+            color: var(--danger-color);
+        }
+
+        .form-control {
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s;
+            background-color: var(--card-color);
+            color: var(--text-primary);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-select {
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            background-color: var(--card-color);
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Button Styles */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #0da271;
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+
+        .btn-warning {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #f59e0b;
+        }
+
+        .btn-info {
+            background-color: var(--info-color);
+            color: white;
+        }
+
+        .btn-info:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+        }
+
+        /* Map Container */
+        .map-container {
+            height: 300px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background-color: var(--card-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .stat-icon.total {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        }
+
+        .stat-icon.pending {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .stat-icon.synced {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .stat-icon.offline {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+        }
+
+        .stat-info h3 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-info p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        /* Data Table */
+        .data-table {
+            width: 100%;
+            background-color: var(--card-color);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .data-table-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .data-table-body {
+            overflow-x: auto;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background-color: rgba(37, 99, 235, 0.05);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        .table tr:hover {
+            background-color: rgba(37, 99, 235, 0.02);
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        .status-approved {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-pending {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-rejected {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1001;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal.active {
+            display: flex;
+            animation: modalFadeIn 0.3s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background-color: var(--card-color);
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.25rem;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        /* Success Modal */
+        .success-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1001;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .success-modal.active {
+            display: flex;
+        }
+
+        .success-content {
+            background-color: var(--card-color);
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            max-width: 500px;
+            box-shadow: var(--shadow-lg);
+            animation: successModalIn 0.5s ease;
+        }
+
+        @keyframes successModalIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            70% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            color: var(--success-color);
+            margin-bottom: 1.5rem;
+            animation: iconBounce 1s ease;
+        }
+
+        @keyframes iconBounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+
+        .success-message {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .success-submessage {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .success-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background-color: var(--card-color);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1002;
+            max-width: 400px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast i {
+            font-size: 1.25rem;
+        }
+
+        .toast.success i {
+            color: var(--success-color);
+        }
+
+        .toast.error i {
+            color: var(--danger-color);
+        }
+
+        .toast.warning i {
+            color: var(--warning-color);
+        }
+
+        .toast.info i {
+            color: var(--info-color);
+        }
+
+        /* Access Control */
+        .access-control-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .access-control-section {
+            background-color: var(--card-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .access-control-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .access-control-list {
+            max-height: 300px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .access-control-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .access-control-item:hover {
+            background-color: rgba(37, 99, 235, 0.05);
+        }
+
+        .access-control-item label {
+            flex: 1;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .access-control-checkbox {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            border: 2px solid var(--border-color);
+            cursor: pointer;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 240px;
+            }
+            .main-content {
+                margin-left: 240px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .app-container {
+                flex-direction: column;
+            }
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .access-control-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .success-actions {
+                flex-direction: column;
+            }
+            .header-right {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
     </style>
 </head>
 <body>
@@ -60,7 +1041,7 @@
         <div class="theme-selector">
             <p style="color: var(--text-secondary); margin-bottom: 10px;">Choose Theme Color:</p>
             <div class="theme-buttons">
-                <div class="theme-btn blue" onclick="changeTheme('blue')"></div>
+                <div class="theme-btn blue active" onclick="changeTheme('blue')"></div>
                 <div class="theme-btn dark" onclick="changeTheme('dark')"></div>
                 <div class="theme-btn green" onclick="changeTheme('green')"></div>
                 <div class="theme-btn purple" onclick="changeTheme('purple')"></div>
@@ -76,20 +1057,22 @@
                 <h2 class="modal-title"><i class="fas fa-key"></i> Reset Password</h2>
                 <button class="modal-close" onclick="closeForgotPassword()">&times;</button>
             </div>
-            <div class="form-group">
-                <label class="form-label required">Employee ID</label>
-                <input type="text" class="form-control" id="resetEmployeeId" placeholder="Enter your Employee ID">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label required">Employee ID</label>
+                    <input type="text" class="form-control" id="resetEmployeeId" placeholder="Enter your Employee ID">
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Email Address</label>
+                    <input type="email" class="form-control" id="resetEmail" placeholder="Enter registered email">
+                </div>
+                <button class="btn btn-primary" onclick="sendResetEmail()" style="width: 100%;">
+                    <i class="fas fa-paper-plane"></i> Send Reset Link
+                </button>
+                <p style="color: var(--text-secondary); font-size: 12px; margin-top: 10px;">
+                    A password reset link will be sent to your email address.
+                </p>
             </div>
-            <div class="form-group">
-                <label class="form-label required">Email Address</label>
-                <input type="email" class="form-control" id="resetEmail" placeholder="Enter registered email">
-            </div>
-            <button class="btn btn-primary" onclick="sendResetEmail()" style="width: 100%;">
-                <i class="fas fa-paper-plane"></i> Send Reset Link
-            </button>
-            <p style="color: var(--text-secondary); font-size: 12px; margin-top: 10px;">
-                A password reset link will be sent to your email address.
-            </p>
         </div>
     </div>
 
@@ -100,21 +1083,23 @@
                 <h2 class="modal-title"><i class="fas fa-unlock-alt"></i> Change Password</h2>
                 <button class="modal-close" onclick="closeChangePassword()">&times;</button>
             </div>
-            <div class="form-group">
-                <label class="form-label required">Current Password</label>
-                <input type="password" class="form-control" id="currentPassword" placeholder="Enter current password">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label required">Current Password</label>
+                    <input type="password" class="form-control" id="currentPassword" placeholder="Enter current password">
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">New Password</label>
+                    <input type="password" class="form-control" id="newPassword" placeholder="Enter new password">
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Confirm New Password</label>
+                    <input type="password" class="form-control" id="confirmPassword" placeholder="Confirm new password">
+                </div>
+                <button class="btn btn-primary" onclick="updatePassword()" style="width: 100%;">
+                    <i class="fas fa-save"></i> Update Password
+                </button>
             </div>
-            <div class="form-group">
-                <label class="form-label required">New Password</label>
-                <input type="password" class="form-control" id="newPassword" placeholder="Enter new password">
-            </div>
-            <div class="form-group">
-                <label class="form-label required">Confirm New Password</label>
-                <input type="password" class="form-control" id="confirmPassword" placeholder="Confirm new password">
-            </div>
-            <button class="btn btn-primary" onclick="updatePassword()" style="width: 100%;">
-                <i class="fas fa-save"></i> Update Password
-            </button>
         </div>
     </div>
 
@@ -141,10 +1126,797 @@
         </div>
     </div>
 
-    <!-- Main Application (Hidden until login) -->
+    <!-- Main Application -->
     <div id="mainApp" style="display: none;">
-        <!-- Your existing main app HTML remains the same -->
-        <!-- ... (keep all your existing main app HTML) ... -->
+        <div class="app-container">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <h2><i class="fas fa-network-wired"></i> GP HOTO System</h2>
+                </div>
+                
+                <div class="sidebar-menu">
+                    <a href="#" class="menu-item active" onclick="switchTab('dashboard-tab')">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="#" class="menu-item" onclick="switchTab('data-entry-tab')">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Data Entry</span>
+                    </a>
+                    <a href="#" class="menu-item" onclick="switchTab('view-data-tab')">
+                        <i class="fas fa-database"></i>
+                        <span>View Data</span>
+                    </a>
+                    <a href="#" class="menu-item" onclick="switchTab('analytics-tab')">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Analytics</span>
+                    </a>
+                    <a href="#" class="menu-item" onclick="switchTab('master-data-tab')">
+                        <i class="fas fa-table"></i>
+                        <span>Master Data</span>
+                    </a>
+                    <a href="#" class="menu-item" onclick="switchTab('settings-tab')">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                    <a href="#" class="menu-item" onclick="switchTab('help-tab')">
+                        <i class="fas fa-question-circle"></i>
+                        <span>Help & Support</span>
+                    </a>
+                </div>
+                
+                <div class="sidebar-footer">
+                    <div class="user-info">
+                        <div class="user-avatar" id="userAvatar">
+                            A
+                        </div>
+                        <div class="user-details">
+                            <h4 id="sidebarUserName">Admin User</h4>
+                            <p id="sidebarUserAccess">Full System Access</p>
+                        </div>
+                    </div>
+                    <button class="logout-btn" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <!-- Header -->
+                <div class="content-header">
+                    <div class="header-left">
+                        <h1><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
+                    </div>
+                    <div class="header-right">
+                        <div class="sync-status" id="syncStatus">
+                            <i class="fas fa-wifi"></i>
+                            <span>Online</span>
+                        </div>
+                        <div class="user-info">
+                            <span id="currentUserName">Admin</span>
+                            <span id="currentUserRole">(Full Access)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Tab -->
+                <div id="dashboard-tab" class="content-section active">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon total">
+                                <i class="fas fa-database"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="totalCount">0</h3>
+                                <p>Total Records</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon pending">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="pendingCount">0</h3>
+                                <p>Pending Sync</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon synced">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="syncedCount">0</h3>
+                                <p>Synced to Cloud</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon offline">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="userCount">0</h3>
+                                <p>Total Users</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="form-section">
+                        <h2 class="section-title"><i class="fas fa-history"></i> Recent Activity</h2>
+                        <div class="data-table-body">
+                            <table class="table" id="recentActivityTable">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>GP Name</th>
+                                        <th>District</th>
+                                        <th>Block</th>
+                                        <th>Status</th>
+                                        <th>Submitted By</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentActivityBody">
+                                    <!-- Data will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Entry Tab -->
+                <div id="data-entry-tab" class="content-section">
+                    <div class="form-section">
+                        <h2 class="section-title"><i class="fas fa-plus-circle"></i> New HOTO Entry</h2>
+                        
+                        <!-- Basic Information -->
+                        <div class="form-grid">
+                            <div class="form-row">
+                                <label class="form-label required">Date</label>
+                                <input type="date" class="form-control" id="hotoDate">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label required">District</label>
+                                <select class="form-select" id="district" onchange="onDistrictChange()">
+                                    <option value="">Select District</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label required">Block</label>
+                                <select class="form-select" id="block" onchange="onBlockChange()">
+                                    <option value="">Select Block</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label required">GP Name</label>
+                                <select class="form-select" id="gpName" onchange="onGPNameChange()">
+                                    <option value="">Select GP</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label required">GP Code</label>
+                                <input type="text" class="form-control" id="gpCode" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GP Shift Status -->
+                    <div class="form-section">
+                        <h2 class="section-title"><i class="fas fa-exchange-alt"></i> GP Shift Status</h2>
+                        <div class="form-grid">
+                            <div class="form-row">
+                                <label class="form-label required">GP Shifted?</label>
+                                <select class="form-select" id="gpShifted" onchange="toggleShiftedSection()">
+                                    <option value="No">No</option>
+                                    <option value="Yes">Yes</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Shifted Location Section (Hidden by default) -->
+                        <div id="shiftedSection" style="display: none; margin-top: 1.5rem;">
+                            <h3 class="section-title" style="font-size: 1rem; margin-bottom: 1rem;">Shifted Location Details</h3>
+                            <div class="form-grid">
+                                <div class="form-row">
+                                    <label class="form-label required">Shifted Address</label>
+                                    <textarea class="form-control" id="shiftedAddress" rows="3" placeholder="Enter new address"></textarea>
+                                </div>
+                                <div class="form-row">
+                                    <label class="form-label">Latitude</label>
+                                    <input type="text" class="form-control" id="shiftedLat" readonly>
+                                </div>
+                                <div class="form-row">
+                                    <label class="form-label">Longitude</label>
+                                    <input type="text" class="form-control" id="shiftedLong" readonly>
+                                </div>
+                                <div class="form-row">
+                                    <label class="form-label"></label>
+                                    <button class="btn btn-secondary" onclick="getShiftedLocation()" type="button">
+                                        <i class="fas fa-map-marker-alt"></i> Get Shifted Location
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Location Details -->
+                    <div class="form-section">
+                        <h2 class="section-title"><i class="fas fa-map-marker-alt"></i> Location Details</h2>
+                        <div class="form-grid">
+                            <div class="form-row">
+                                <label class="form-label required">Original Address</label>
+                                <textarea class="form-control" id="originalAddress" rows="3" placeholder="Enter original address"></textarea>
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label">Latitude</label>
+                                <input type="text" class="form-control" id="originalLat" readonly>
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label">Longitude</label>
+                                <input type="text" class="form-control" id="originalLong" readonly>
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label"></label>
+                                <button class="btn btn-secondary" onclick="getOriginalLocation()" type="button">
+                                    <i class="fas fa-map-marker-alt"></i> Get Current Location
+                                </button>
+                            </div>
+                        </div>
+                        <div class="map-container" id="locationMap"></div>
+                    </div>
+
+                    <!-- Equipment Details -->
+                    <div class="form-section">
+                        <h2 class="section-title"><i class="fas fa-server"></i> Equipment Details</h2>
+                        <div class="form-grid">
+                            <div class="form-row">
+                                <label class="form-label required">Equipment Make</label>
+                                <select class="form-select" id="equipmentMake">
+                                    <option value="">Select Make</option>
+                                    <option value="Huawei">Huawei</option>
+                                    <option value="ZTE">ZTE</option>
+                                    <option value="Nokia">Nokia</option>
+                                    <option value="Cisco">Cisco</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ONT Details -->
+                    <div class="form-section">
+                        <h2 class="section-title"><i class="fas fa-microchip"></i> ONT Details</h2>
+                        <div class="form-grid">
+                            <div class="form-row">
+                                <label class="form-label">ONT Make</label>
+                                <input type="text" class="form-control" id="ontMake" placeholder="Enter ONT make">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label">ONT Serial Number</label>
+                                <input type="text" class="form-control" id="ontSerial" placeholder="Enter serial number">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label">ONT Status</label>
+                                <select class="form-select" id="ontStatus">
+                                    <option value="Working">Working</option>
+                                    <option value="Not Working">Not Working</option>
+                                    <option value="Damaged">Damaged</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label">ONT Location</label>
+                                <input type="text" class="form-control" id="ontLocation" placeholder="Enter location">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CCU Details -->
+                    <div class="form-section">
+                        <h2 class="section-title"><i class="fas fa-hdd"></i> CCU Details</h2>
+                        <div class="form-grid">
+                            <div class="form-row">
+                                <label class="form-label">CCU Make</label>
+                                <input type="text" class="form-control" id="ccuMake" placeholder="Enter CCU make">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label">CCU Serial Number</label>
+                                <input type="text" class="form-control" id="ccuSerial" placeholder="Enter serial number">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label">CCU Status</label>
+                                <select class="form-select" id="ccuStatus">
+                                    <option value="Working">Working</option>
+                                    <option value="Not Working">Not Working</option>
+                                    <option value="Damaged">Damaged</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label">CCU Location</label>
+                                <input type="text" class="form-control" id="ccuLocation" placeholder="Enter location">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Solar Details -->
+                    <div class="form-section">
+                        <h2 class="section-title"><i class="fas fa-sun"></i> Solar Details</h2>
+                        <div class="form-grid">
+                            <div class="form-row">
+                                <label class="form-label">Solar Make</label>
+                                <input type="text" class="form-control" id="solarMake" placeholder="Enter solar make">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label">Solar Serial Number</label>
+                                <input type="text" class="form-control" id="solarSerial" placeholder="Enter serial number">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label">Solar Capacity (W)</label>
+                                <input type="number" class="form-control" id="solarCapacity" placeholder="Enter capacity">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label">Solar Status</label>
+                                <select class="form-select" id="solarStatus">
+                                    <option value="Working">Working</option>
+                                    <option value="Not Working">Not Working</option>
+                                    <option value="Damaged">Damaged</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Battery Details -->
+                    <div class="form-section">
+                        <h2 class="section-title"><i class="fas fa-car-battery"></i> Battery Details</h2>
+                        <div class="form-grid">
+                            <div class="form-row">
+                                <label class="form-label">Battery Make</label>
+                                <input type="text" class="form-control" id="batteryMake" placeholder="Enter battery make">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label">Battery Serial Number</label>
+                                <input type="text" class="form-control" id="batterySerial" placeholder="Enter serial number">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label">Battery Capacity (AH)</label>
+                                <input type="number" class="form-control" id="batteryCapacity" placeholder="Enter capacity">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label">Battery Status</label>
+                                <select class="form-select" id="batteryStatus">
+                                    <option value="Working">Working</option>
+                                    <option value="Not Working">Not Working</option>
+                                    <option value="Damaged">Damaged</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Infrastructure Details -->
+                    <div class="form-section">
+                        <h2 class="section-title"><i class="fas fa-building"></i> Infrastructure Details</h2>
+                        <div class="form-grid">
+                            <div class="form-row">
+                                <label class="form-label required">GPON Cabinet</label>
+                                <select class="form-select" id="gponCabinet">
+                                    <option value="Available">Available</option>
+                                    <option value="Not Available">Not Available</option>
+                                    <option value="Damaged">Damaged</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label required">Earthing</label>
+                                <select class="form-select" id="earthing">
+                                    <option value="Proper">Proper</option>
+                                    <option value="Not Proper">Not Proper</option>
+                                    <option value="Not Available">Not Available</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Custodian Details -->
+                    <div class="form-section" id="custodianSection" style="display: none;">
+                        <h2 class="section-title"><i class="fas fa-user-shield"></i> Custodian Details</h2>
+                        <div class="form-grid">
+                            <div class="form-row">
+                                <label class="form-label required">Custodian Name</label>
+                                <input type="text" class="form-control" id="custodianName" placeholder="Enter custodian name">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label required">Custodian Mobile</label>
+                                <input type="tel" class="form-control" id="custodianMobile" placeholder="Enter mobile number">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label required">Custodian Address</label>
+                                <textarea class="form-control" id="custodianAddress" rows="3" placeholder="Enter custodian address"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="form-section">
+                        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                            <button class="btn btn-secondary" onclick="clearForm()">
+                                <i class="fas fa-times"></i> Clear Form
+                            </button>
+                            <button class="btn btn-primary" onclick="saveHOTO()" id="saveButton">
+                                <i class="fas fa-save"></i> Save HOTO Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View Data Tab -->
+                <div id="view-data-tab" class="content-section">
+                    <div class="form-section">
+                        <h2 class="section-title"><i class="fas fa-database"></i> All HOTO Records</h2>
+                        
+                        <!-- Filters -->
+                        <div class="form-grid" style="margin-bottom: 1.5rem;">
+                            <div class="form-row">
+                                <label class="form-label">Filter by Date</label>
+                                <input type="date" class="form-control" id="filterDate" onchange="loadHOTOList()">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label">Filter by District</label>
+                                <select class="form-select" id="filterDistrict" onchange="loadHOTOList()">
+                                    <option value="">All Districts</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label">Filter by Status</label>
+                                <select class="form-select" id="filterStatus" onchange="loadHOTOList()">
+                                    <option value="">All Records</option>
+                                    <option value="synced">Synced</option>
+                                    <option value="pending">Pending Sync</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Data Table -->
+                        <div class="data-table-body">
+                            <table class="table" id="hotoTable">
+                                <thead>
+                                    <tr>
+                                        <th>S.No</th>
+                                        <th>Date</th>
+                                        <th>GP Name</th>
+                                        <th>District</th>
+                                        <th>Block</th>
+                                        <th>GP Shifted</th>
+                                        <th>Synced</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="hotoTableBody">
+                                    <!-- Data will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Export Buttons -->
+                        <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: flex-end;">
+                            <button class="btn btn-success" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel"></i> Export to Excel
+                            </button>
+                            <button class="btn btn-danger" onclick="exportToPDF()">
+                                <i class="fas fa-file-pdf"></i> Export to PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics Tab -->
+                <div id="analytics-tab" class="content-section">
+                    <div class="form-section">
+                        <h2 class="section-title"><i class="fas fa-chart-bar"></i> Analytics Dashboard</h2>
+                        
+                        <!-- Charts Container -->
+                        <div class="form-grid" style="grid-template-columns: repeat(2, 1fr); gap: 2rem;">
+                            <div>
+                                <div id="districtChart" style="min-height: 400px;"></div>
+                            </div>
+                            <div>
+                                <div id="equipmentChart" style="min-height: 400px;"></div>
+                            </div>
+                            <div>
+                                <div id="statusChart" style="min-height: 400px;"></div>
+                            </div>
+                            <div>
+                                <div id="monthlyChart" style="min-height: 400px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Master Data Tab -->
+                <div id="master-data-tab" class="content-section">
+                    <div class="form-section">
+                        <h2 class="section-title"><i class="fas fa-table"></i> GP Master Data Management</h2>
+                        
+                        <!-- Import Section -->
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Import GP Master Data</h3>
+                            <div class="form-grid">
+                                <div class="form-row">
+                                    <label class="form-label">Upload Excel File</label>
+                                    <input type="file" class="form-control" id="excelFile" accept=".xlsx, .xls" onchange="handleFileSelect(event)">
+                                </div>
+                                <div class="form-row">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button class="btn btn-primary" onclick="importExcelData()">
+                                        <i class="fas fa-upload"></i> Import Data
+                                    </button>
+                                </div>
+                            </div>
+                            <p style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.5rem;">
+                                Note: Excel file should have columns: District, Block, GP_Name, GP_Code
+                            </p>
+                        </div>
+
+                        <!-- Current Master Data -->
+                        <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Current GP Master Data</h3>
+                        <div class="data-table-body">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>S.No</th>
+                                        <th>District</th>
+                                        <th>Block</th>
+                                        <th>GP Name</th>
+                                        <th>GP Code</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="masterDataTable">
+                                    <!-- Data will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Danger Zone -->
+                        <div style="margin-top: 2rem; padding: 1.5rem; background-color: #fee2e2; border-radius: 8px;">
+                            <h3 style="color: #dc2626; margin-bottom: 1rem; font-size: 1.125rem;">
+                                <i class="fas fa-exclamation-triangle"></i> Danger Zone
+                            </h3>
+                            <p style="color: #991b1b; margin-bottom: 1rem;">
+                                This action will delete ALL GP master data. This cannot be undone.
+                            </p>
+                            <button class="btn btn-danger" onclick="deleteMasterData()">
+                                <i class="fas fa-trash"></i> Delete All GP Master Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div id="settings-tab" class="content-section">
+                    <div class="form-section">
+                        <h2 class="section-title"><i class="fas fa-cog"></i> User Settings</h2>
+                        
+                        <!-- User Profile -->
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">User Profile</h3>
+                            <div class="form-grid">
+                                <div class="form-row">
+                                    <label class="form-label">Full Name</label>
+                                    <input type="text" class="form-control" id="profileName">
+                                </div>
+                                <div class="form-row">
+                                    <label class="form-label">Employee ID</label>
+                                    <input type="text" class="form-control" id="profileEmployeeId" readonly>
+                                </div>
+                                <div class="form-row">
+                                    <label class="form-label">Designation</label>
+                                    <input type="text" class="form-control" id="profileDesignation">
+                                </div>
+                                <div class="form-row">
+                                    <label class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-control" id="profilePhone">
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="updateProfile()" style="margin-top: 1rem;">
+                                <i class="fas fa-save"></i> Update Profile
+                            </button>
+                        </div>
+
+                        <!-- Access Level -->
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Access Level</h3>
+                            <div class="form-grid">
+                                <div class="form-row">
+                                    <label class="form-label">Current Access Level</label>
+                                    <select class="form-select" id="userAccessLevel" disabled>
+                                        <option value="dataEntry">Data Entry Only</option>
+                                        <option value="full">Full Access</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                                <button class="btn btn-info access-btn" onclick="setAccessLevel('dataEntry')">
+                                    Data Entry Only
+                                </button>
+                                <button class="btn btn-success access-btn" onclick="setAccessLevel('full')">
+                                    Full Access
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- District Access Control -->
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">District Access Control</h3>
+                            <div class="access-control-section">
+                                <div class="access-control-list" id="districtAccessList">
+                                    <!-- Districts will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Block Access Control -->
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Block Access Control</h3>
+                            <div class="access-control-section">
+                                <div class="access-control-list" id="blockAccessList">
+                                    <!-- Blocks will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Note Management -->
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Note Management</h3>
+                            <div class="form-row">
+                                <label class="form-label">Add Note</label>
+                                <textarea class="form-control" id="noteText" rows="3" placeholder="Enter your note..."></textarea>
+                            </div>
+                            <button class="btn btn-primary" onclick="addNote()" style="margin-top: 1rem;">
+                                <i class="fas fa-plus"></i> Add Note
+                            </button>
+                            
+                            <div id="notesList" style="margin-top: 1.5rem;">
+                                <!-- Notes will be displayed here -->
+                            </div>
+                        </div>
+
+                        <!-- User Management (Admin Only) -->
+                        <div id="userManagementSection" style="display: none;">
+                            <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">User Management</h3>
+                            
+                            <!-- Add New User -->
+                            <div class="form-section">
+                                <h4 style="margin-bottom: 1rem; font-size: 1rem;">Add New User</h4>
+                                <div class="form-grid">
+                                    <div class="form-row">
+                                        <label class="form-label required">Employee ID</label>
+                                        <input type="text" class="form-control" id="newEmployeeId" placeholder="Enter Employee ID">
+                                    </div>
+                                    <div class="form-row">
+                                        <label class="form-label required">Full Name</label>
+                                        <input type="text" class="form-control" id="newUserName" placeholder="Enter full name">
+                                    </div>
+                                    <div class="form-row">
+                                        <label class="form-label required">Email Address</label>
+                                        <input type="email" class="form-control" id="newUserEmail" placeholder="Enter email address">
+                                    </div>
+                                    <div class="form-row">
+                                        <label class="form-label">Designation</label>
+                                        <input type="text" class="form-control" id="newUserDesignation" placeholder="Enter designation">
+                                    </div>
+                                    <div class="form-row">
+                                        <label class="form-label">Phone Number</label>
+                                        <input type="tel" class="form-control" id="newUserPhone" placeholder="Enter phone number">
+                                    </div>
+                                    <div class="form-row">
+                                        <label class="form-label required">Access Level</label>
+                                        <select class="form-select" id="newUserAccessLevel">
+                                            <option value="dataEntry">Data Entry Only</option>
+                                            <option value="full">Full Access</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary" onclick="addNewUser()" style="margin-top: 1rem;">
+                                    <i class="fas fa-user-plus"></i> Add User
+                                </button>
+                            </div>
+
+                            <!-- Users List -->
+                            <div style="margin-top: 2rem;">
+                                <h4 style="margin-bottom: 1rem; font-size: 1rem;">Existing Users</h4>
+                                <div class="data-table-body">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Employee ID</th>
+                                                <th>Name</th>
+                                                <th>Designation</th>
+                                                <th>Email</th>
+                                                <th>Phone</th>
+                                                <th>Access Level</th>
+                                                <th>District Access</th>
+                                                <th>Block Access</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="usersTableBody">
+                                            <!-- Users will be populated here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Help Tab -->
+                <div id="help-tab" class="content-section">
+                    <div class="form-section">
+                        <h2 class="section-title"><i class="fas fa-question-circle"></i> Help & Support</h2>
+                        
+                        <div class="form-grid">
+                            <div>
+                                <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Getting Started</h3>
+                                <div style="background-color: rgba(37, 99, 235, 0.05); padding: 1.5rem; border-radius: 8px;">
+                                    <ol style="padding-left: 1.5rem; margin-bottom: 1rem;">
+                                        <li style="margin-bottom: 0.5rem;">Login using your Employee ID and Password</li>
+                                        <li style="margin-bottom: 0.5rem;">Navigate to Data Entry tab to add new HOTO records</li>
+                                        <li style="margin-bottom: 0.5rem;">Use the Dashboard to view statistics and recent activity</li>
+                                        <li style="margin-bottom: 0.5rem;">Check View Data tab to see all submitted records</li>
+                                        <li style="margin-bottom: 0.5rem;">Use Settings to manage your profile and preferences</li>
+                                    </ol>
+                                    <p style="color: var(--text-secondary); font-size: 0.875rem;">
+                                        <i class="fas fa-info-circle"></i> Tip: Always ensure you have internet connection for automatic cloud sync
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Frequently Asked Questions</h3>
+                                <div style="background-color: rgba(37, 99, 235, 0.05); padding: 1.5rem; border-radius: 8px;">
+                                    <div style="margin-bottom: 1rem;">
+                                        <h4 style="font-weight: 600; margin-bottom: 0.5rem;">Q: How to reset password?</h4>
+                                        <p style="color: var(--text-secondary); font-size: 0.875rem;">
+                                            Click on "Forgot Password?" on login page and follow the instructions.
+                                        </p>
+                                    </div>
+                                    <div style="margin-bottom: 1rem;">
+                                        <h4 style="font-weight: 600; margin-bottom: 0.5rem;">Q: Can I work offline?</h4>
+                                        <p style="color: var(--text-secondary); font-size: 0.875rem;">
+                                            Yes, data is saved locally and will sync automatically when back online.
+                                        </p>
+                                    </div>
+                                    <div style="margin-bottom: 1rem;">
+                                        <h4 style="font-weight: 600; margin-bottom: 0.5rem;">Q: How to export data?</h4>
+                                        <p style="color: var(--text-secondary); font-size: 0.875rem;">
+                                            Go to View Data tab and use Export buttons to download Excel or PDF.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 2rem;">
+                            <h3 style="margin-bottom: 1rem; font-size: 1.125rem;">Contact Support</h3>
+                            <div class="form-grid">
+                                <div class="form-row">
+                                    <label class="form-label">Email Support</label>
+                                    <a href="mailto:support@gphotosystem.com" style="color: var(--primary-color); text-decoration: none;">
+                                        <i class="fas fa-envelope"></i> support@gphotosystem.com
+                                    </a>
+                                </div>
+                                <div class="form-row">
+                                    <label class="form-label">Phone Support</label>
+                                    <a href="tel:+911234567890" style="color: var(--primary-color); text-decoration: none;">
+                                        <i class="fas fa-phone"></i> +91 12345 67890
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Toast Notification -->
@@ -186,6 +1958,9 @@
         let isOnline = navigator.onLine;
         let autoLoginToken = null;
         let firstLogin = false;
+        let map = null;
+        let originalMarker = null;
+        let shiftedMarker = null;
 
         // Initialize application
         document.addEventListener('DOMContentLoaded', function() {
@@ -287,9 +2062,34 @@
         async function initializeApp() {
             loadTheme();
             checkLoginStatus();
+            initializeMap();
         }
 
-        // Theme Management (keep existing)
+        // Theme Management
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'blue';
+            changeTheme(savedTheme);
+            
+            // Set active button
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.classList.contains(savedTheme)) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        function changeTheme(theme) {
+            currentTheme = theme;
+            document.body.className = `theme-${theme}`;
+            localStorage.setItem('theme', theme);
+            
+            // Update active button
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`.theme-btn.${theme}`).classList.add('active');
+        }
 
         // Authentication System with Supabase
         async function checkLoginStatus() {
@@ -690,6 +2490,13 @@
             document.getElementById('currentUserRole').textContent = `(${currentUser.accessLevel === 'full' ? 'Full Access' : 'Data Entry Only'})`;
             document.getElementById('sidebarUserName').textContent = currentUser.name || currentUser.employeeId;
             document.getElementById('sidebarUserAccess').textContent = currentUser.accessLevel === 'full' ? 'Full System Access' : 'Data Entry Access Only';
+            
+            // Update user avatar
+            const avatar = document.getElementById('userAvatar');
+            if (currentUser.name) {
+                const initials = currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                avatar.textContent = initials;
+            }
             
             // Load profile data
             document.getElementById('profileName').value = currentUser.name || '';
@@ -1132,27 +2939,1000 @@
             }
         }
 
-        // Success Modal Functions (keep existing)
+        // Success Modal Functions
+        function showSuccessModal() {
+            document.getElementById('successModal').classList.add('active');
+        }
 
-        // Clear form (keep existing)
+        function closeSuccessModal() {
+            document.getElementById('successModal').classList.remove('active');
+        }
 
-        // GP Shift Functionality (keep existing)
+        function addNewData() {
+            closeSuccessModal();
+            switchTab('data-entry-tab');
+            clearForm();
+        }
 
-        // GPS Location Function (keep existing)
+        // Clear form
+        function clearForm(keepBasicInfo = false) {
+            if (!keepBasicInfo) {
+                // Reset form fields
+                document.getElementById('hotoDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('district').value = '';
+                document.getElementById('block').value = '';
+                document.getElementById('gpName').value = '';
+                document.getElementById('gpCode').value = '';
+                document.getElementById('gpShifted').value = 'No';
+                document.getElementById('equipmentMake').value = '';
+                document.getElementById('originalAddress').value = '';
+                document.getElementById('originalLat').value = '';
+                document.getElementById('originalLong').value = '';
+            }
+            
+            // Clear other fields
+            document.getElementById('shiftedAddress').value = '';
+            document.getElementById('shiftedLat').value = '';
+            document.getElementById('shiftedLong').value = '';
+            document.getElementById('ontMake').value = '';
+            document.getElementById('ontSerial').value = '';
+            document.getElementById('ontStatus').value = 'Working';
+            document.getElementById('ontLocation').value = '';
+            document.getElementById('ccuMake').value = '';
+            document.getElementById('ccuSerial').value = '';
+            document.getElementById('ccuStatus').value = 'Working';
+            document.getElementById('ccuLocation').value = '';
+            document.getElementById('solarMake').value = '';
+            document.getElementById('solarSerial').value = '';
+            document.getElementById('solarCapacity').value = '';
+            document.getElementById('solarStatus').value = 'Working';
+            document.getElementById('batteryMake').value = '';
+            document.getElementById('batterySerial').value = '';
+            document.getElementById('batteryCapacity').value = '';
+            document.getElementById('batteryStatus').value = 'Working';
+            document.getElementById('gponCabinet').value = 'Available';
+            document.getElementById('earthing').value = 'Proper';
+            document.getElementById('custodianName').value = '';
+            document.getElementById('custodianMobile').value = '';
+            document.getElementById('custodianAddress').value = '';
+            
+            // Hide shifted section
+            document.getElementById('shiftedSection').style.display = 'none';
+            document.getElementById('custodianSection').style.display = 'none';
+            
+            // Reset save button
+            document.getElementById('saveButton').innerHTML = '<i class="fas fa-save"></i> Save HOTO Data';
+            editMode = false;
+            editingHOTOId = null;
+            
+            // Clear map markers
+            if (originalMarker) {
+                map.removeLayer(originalMarker);
+                originalMarker = null;
+            }
+            if (shiftedMarker) {
+                map.removeLayer(shiftedMarker);
+                shiftedMarker = null;
+            }
+        }
 
-        // Note Management Functions (keep existing)
+        // GP Shift Functionality
+        function toggleShiftedSection() {
+            const gpShifted = document.getElementById('gpShifted').value;
+            const shiftedSection = document.getElementById('shiftedSection');
+            const custodianSection = document.getElementById('custodianSection');
+            
+            if (gpShifted === 'Yes') {
+                shiftedSection.style.display = 'block';
+                custodianSection.style.display = 'block';
+            } else {
+                shiftedSection.style.display = 'none';
+                custodianSection.style.display = 'none';
+            }
+        }
 
-        // GP Master Data Management (keep existing)
+        // GPS Location Functions
+        function initializeMap() {
+            // Default to India coordinates
+            map = L.map('locationMap').setView([20.5937, 78.9629], 5);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
 
-        // Data loading and management (keep existing)
+        function getOriginalLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        
+                        document.getElementById('originalLat').value = lat.toFixed(6);
+                        document.getElementById('originalLong').value = lng.toFixed(6);
+                        
+                        // Update map
+                        if (originalMarker) {
+                            map.removeLayer(originalMarker);
+                        }
+                        originalMarker = L.marker([lat, lng])
+                            .addTo(map)
+                            .bindPopup('Original Location')
+                            .openPopup();
+                        
+                        map.setView([lat, lng], 15);
+                        
+                        // Reverse geocode to get address
+                        getAddressFromCoordinates(lat, lng, 'original');
+                        
+                        showToast('Location captured successfully', 'success');
+                    },
+                    (error) => {
+                        showToast('Unable to get your location: ' + error.message, 'error');
+                    }
+                );
+            } else {
+                showToast('Geolocation is not supported by your browser', 'error');
+            }
+        }
 
-        // Export Functions (keep existing)
+        function getShiftedLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        
+                        document.getElementById('shiftedLat').value = lat.toFixed(6);
+                        document.getElementById('shiftedLong').value = lng.toFixed(6);
+                        
+                        // Update map
+                        if (shiftedMarker) {
+                            map.removeLayer(shiftedMarker);
+                        }
+                        shiftedMarker = L.marker([lat, lng], {color: 'red'})
+                            .addTo(map)
+                            .bindPopup('Shifted Location')
+                            .openPopup();
+                        
+                        map.setView([lat, lng], 15);
+                        
+                        // Reverse geocode to get address
+                        getAddressFromCoordinates(lat, lng, 'shifted');
+                        
+                        showToast('Shifted location captured successfully', 'success');
+                    },
+                    (error) => {
+                        showToast('Unable to get location: ' + error.message, 'error');
+                    }
+                );
+            } else {
+                showToast('Geolocation is not supported by your browser', 'error');
+            }
+        }
 
-        // Excel Import Functions (keep existing)
+        async function getAddressFromCoordinates(lat, lng, type) {
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                const data = await response.json();
+                
+                if (data && data.display_name) {
+                    if (type === 'original') {
+                        document.getElementById('originalAddress').value = data.display_name;
+                    } else {
+                        document.getElementById('shiftedAddress').value = data.display_name;
+                    }
+                }
+            } catch (error) {
+                console.error('Reverse geocoding error:', error);
+            }
+        }
 
-        // District and Block Access Control (keep existing)
+        // Note Management Functions
+        function loadNote() {
+            const notes = JSON.parse(localStorage.getItem('userNotes') || '{}');
+            const userNotes = notes[currentUser.employeeId] || [];
+            const notesList = document.getElementById('notesList');
+            
+            notesList.innerHTML = '';
+            
+            if (userNotes.length === 0) {
+                notesList.innerHTML = '<p style="color: var(--text-secondary); font-style: italic;">No notes added yet.</p>';
+                return;
+            }
+            
+            userNotes.forEach((note, index) => {
+                const noteElement = document.createElement('div');
+                noteElement.className = 'note-item';
+                noteElement.style.cssText = `
+                    background-color: rgba(37, 99, 235, 0.05);
+                    padding: 1rem;
+                    border-radius: 8px;
+                    margin-bottom: 0.75rem;
+                    border-left: 4px solid var(--primary-color);
+                `;
+                
+                noteElement.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                        <span style="font-weight: 500; color: var(--text-primary);">${note.timestamp}</span>
+                        <button onclick="deleteNote(${index})" style="background: none; border: none; color: var(--danger-color); cursor: pointer;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <p style="color: var(--text-secondary); margin: 0;">${note.text}</p>
+                `;
+                
+                notesList.appendChild(noteElement);
+            });
+        }
 
-        // User Management Functions - UPDATED WITH EMAIL REQUIREMENT
+        function addNote() {
+            const noteText = document.getElementById('noteText').value.trim();
+            
+            if (!noteText) {
+                showToast('Please enter note text', 'error');
+                return;
+            }
+            
+            const notes = JSON.parse(localStorage.getItem('userNotes') || '{}');
+            const userNotes = notes[currentUser.employeeId] || [];
+            
+            userNotes.unshift({
+                text: noteText,
+                timestamp: new Date().toLocaleString()
+            });
+            
+            // Keep only last 10 notes
+            if (userNotes.length > 10) {
+                userNotes.splice(10);
+            }
+            
+            notes[currentUser.employeeId] = userNotes;
+            localStorage.setItem('userNotes', JSON.stringify(notes));
+            
+            // Clear input
+            document.getElementById('noteText').value = '';
+            
+            // Reload notes
+            loadNote();
+            
+            showToast('Note added successfully', 'success');
+        }
+
+        function deleteNote(index) {
+            const notes = JSON.parse(localStorage.getItem('userNotes') || '{}');
+            const userNotes = notes[currentUser.employeeId] || [];
+            
+            if (index >= 0 && index < userNotes.length) {
+                userNotes.splice(index, 1);
+                notes[currentUser.employeeId] = userNotes;
+                localStorage.setItem('userNotes', JSON.stringify(notes));
+                loadNote();
+                showToast('Note deleted', 'success');
+            }
+        }
+
+        // GP Master Data Management
+        function loadGPMasterData() {
+            gpMasterData = JSON.parse(localStorage.getItem('gpMasterData') || '[]');
+            populateDistrictSelect();
+            updateMasterDataTable();
+        }
+
+        function populateDistrictSelect() {
+            const districtSelect = document.getElementById('district');
+            const filterDistrictSelect = document.getElementById('filterDistrict');
+            
+            // Clear existing options except first
+            while (districtSelect.options.length > 1) {
+                districtSelect.remove(1);
+            }
+            while (filterDistrictSelect.options.length > 1) {
+                filterDistrictSelect.remove(1);
+            }
+            
+            // Get unique districts
+            const districts = [...new Set(gpMasterData.map(gp => gp.District))].sort();
+            
+            districts.forEach(district => {
+                const option1 = document.createElement('option');
+                option1.value = district;
+                option1.textContent = district;
+                districtSelect.appendChild(option1);
+                
+                const option2 = document.createElement('option');
+                option2.value = district;
+                option2.textContent = district;
+                filterDistrictSelect.appendChild(option2);
+            });
+            
+            // Populate block select when district is selected
+            if (districtSelect.value) {
+                onDistrictChange();
+            }
+        }
+
+        function onDistrictChange() {
+            const district = document.getElementById('district').value;
+            const blockSelect = document.getElementById('block');
+            
+            // Clear existing options except first
+            while (blockSelect.options.length > 1) {
+                blockSelect.remove(1);
+            }
+            
+            if (!district) {
+                document.getElementById('gpName').innerHTML = '<option value="">Select GP</option>';
+                document.getElementById('gpCode').value = '';
+                return;
+            }
+            
+            // Get unique blocks for selected district
+            const blocks = [...new Set(
+                gpMasterData
+                    .filter(gp => gp.District === district)
+                    .map(gp => gp.Block)
+            )].sort();
+            
+            blocks.forEach(block => {
+                const option = document.createElement('option');
+                option.value = block;
+                option.textContent = block;
+                blockSelect.appendChild(option);
+            });
+            
+            // Populate GP names
+            onBlockChange();
+        }
+
+        function onBlockChange() {
+            const district = document.getElementById('district').value;
+            const block = document.getElementById('block').value;
+            const gpSelect = document.getElementById('gpName');
+            
+            // Clear existing options except first
+            while (gpSelect.options.length > 1) {
+                gpSelect.remove(1);
+            }
+            
+            if (!district || !block) {
+                document.getElementById('gpCode').value = '';
+                return;
+            }
+            
+            // Get GPs for selected district and block
+            const gps = gpMasterData.filter(gp => gp.District === district && gp.Block === block);
+            
+            gps.forEach(gp => {
+                const option = document.createElement('option');
+                option.value = gp.GP_Name;
+                option.textContent = gp.GP_Name;
+                gpSelect.appendChild(option);
+            });
+            
+            // Select first GP by default
+            if (gps.length > 0) {
+                gpSelect.value = gps[0].GP_Name;
+                onGPNameChange();
+            }
+        }
+
+        function onGPNameChange() {
+            const district = document.getElementById('district').value;
+            const block = document.getElementById('block').value;
+            const gpName = document.getElementById('gpName').value;
+            
+            if (!district || !block || !gpName) {
+                document.getElementById('gpCode').value = '';
+                return;
+            }
+            
+            // Find GP code
+            const gp = gpMasterData.find(g => 
+                g.District === district && 
+                g.Block === block && 
+                g.GP_Name === gpName
+            );
+            
+            if (gp) {
+                document.getElementById('gpCode').value = gp.GP_Code || '';
+            } else {
+                document.getElementById('gpCode').value = '';
+            }
+        }
+
+        function updateMasterDataTable() {
+            const tableBody = document.getElementById('masterDataTable');
+            tableBody.innerHTML = '';
+            
+            gpMasterData.forEach((gp, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${gp.District || ''}</td>
+                    <td>${gp.Block || ''}</td>
+                    <td>${gp.GP_Name || ''}</td>
+                    <td>${gp.GP_Code || ''}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="deleteGP(${index})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function deleteGP(index) {
+            if (confirm('Are you sure you want to delete this GP?')) {
+                gpMasterData.splice(index, 1);
+                localStorage.setItem('gpMasterData', JSON.stringify(gpMasterData));
+                updateMasterDataTable();
+                populateDistrictSelect();
+                showToast('GP deleted successfully', 'success');
+            }
+        }
+
+        // Excel Import Functions
+        function handleFileSelect(event) {
+            selectedExcelFile = event.target.files[0];
+        }
+
+        function importExcelData() {
+            if (!selectedExcelFile) {
+                showToast('Please select an Excel file', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // Get first sheet
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    
+                    // Convert to JSON
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    if (jsonData.length === 0) {
+                        showToast('No data found in Excel file', 'error');
+                        return;
+                    }
+                    
+                    // Validate required columns
+                    const requiredColumns = ['District', 'Block', 'GP_Name', 'GP_Code'];
+                    const firstRow = jsonData[0];
+                    const missingColumns = requiredColumns.filter(col => !(col in firstRow));
+                    
+                    if (missingColumns.length > 0) {
+                        showToast(`Missing required columns: ${missingColumns.join(', ')}`, 'error');
+                        return;
+                    }
+                    
+                    // Add to existing data
+                    const existingData = JSON.parse(localStorage.getItem('gpMasterData') || '[]');
+                    const newData = [...existingData, ...jsonData];
+                    
+                    // Remove duplicates based on GP_Code
+                    const uniqueData = [];
+                    const seenCodes = new Set();
+                    
+                    newData.forEach(gp => {
+                        if (!seenCodes.has(gp.GP_Code)) {
+                            seenCodes.add(gp.GP_Code);
+                            uniqueData.push(gp);
+                        }
+                    });
+                    
+                    gpMasterData = uniqueData;
+                    localStorage.setItem('gpMasterData', JSON.stringify(gpMasterData));
+                    
+                    // Update UI
+                    updateMasterDataTable();
+                    populateDistrictSelect();
+                    
+                    // Clear file input
+                    document.getElementById('excelFile').value = '';
+                    selectedExcelFile = null;
+                    
+                    showToast(`Imported ${jsonData.length} GP records successfully`, 'success');
+                    
+                } catch (error) {
+                    console.error('Excel import error:', error);
+                    showToast('Error reading Excel file', 'error');
+                }
+            };
+            
+            reader.readAsArrayBuffer(selectedExcelFile);
+        }
+
+        // Data loading and management
+        function updateStats() {
+            // Update counts
+            document.getElementById('totalCount').textContent = hotoData.length;
+            
+            const pendingCount = hotoData.filter(h => !h.synced_to_cloud).length;
+            document.getElementById('pendingCount').textContent = pendingCount;
+            
+            const syncedCount = hotoData.filter(h => h.synced_to_cloud).length;
+            document.getElementById('syncedCount').textContent = syncedCount;
+            
+            // Update user count
+            const users = JSON.parse(localStorage.getItem('users') || '{}');
+            document.getElementById('userCount').textContent = Object.keys(users).length;
+            
+            // Update recent activity
+            updateRecentActivity();
+        }
+
+        function updateRecentActivity() {
+            const recentActivityBody = document.getElementById('recentActivityBody');
+            recentActivityBody.innerHTML = '';
+            
+            // Get last 10 records
+            const recentData = hotoData.slice(0, 10);
+            
+            recentData.forEach(hoto => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${new Date(hoto.date).toLocaleDateString()}</td>
+                    <td>${hoto.gpName}</td>
+                    <td>${hoto.district}</td>
+                    <td>${hoto.block}</td>
+                    <td>
+                        <span class="status-badge ${hoto.synced_to_cloud ? 'status-approved' : 'status-pending'}">
+                            ${hoto.synced_to_cloud ? 'Synced' : 'Pending'}
+                        </span>
+                    </td>
+                    <td>${hoto.submittedBy}</td>
+                `;
+                recentActivityBody.appendChild(row);
+            });
+        }
+
+        function loadHOTOList() {
+            const tableBody = document.getElementById('hotoTableBody');
+            const filterDate = document.getElementById('filterDate').value;
+            const filterDistrict = document.getElementById('filterDistrict').value;
+            const filterStatus = document.getElementById('filterStatus').value;
+            
+            tableBody.innerHTML = '';
+            
+            let filteredData = hotoData;
+            
+            // Apply filters
+            if (filterDate) {
+                filteredData = filteredData.filter(h => h.date === filterDate);
+            }
+            
+            if (filterDistrict) {
+                filteredData = filteredData.filter(h => h.district === filterDistrict);
+            }
+            
+            if (filterStatus === 'synced') {
+                filteredData = filteredData.filter(h => h.synced_to_cloud);
+            } else if (filterStatus === 'pending') {
+                filteredData = filteredData.filter(h => !h.synced_to_cloud);
+            }
+            
+            filteredData.forEach((hoto, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${hoto.date}</td>
+                    <td>${hoto.gpName}</td>
+                    <td>${hoto.district}</td>
+                    <td>${hoto.block}</td>
+                    <td>${hoto.gpShifted}</td>
+                    <td>
+                        <span class="status-badge ${hoto.synced_to_cloud ? 'status-approved' : 'status-pending'}">
+                            ${hoto.synced_to_cloud ? 'Synced' : 'Pending'}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="viewHOTO('${hoto.id}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-warning" onclick="editHOTO('${hoto.id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteHOTO('${hoto.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function viewHOTO(id) {
+            const hoto = hotoData.find(h => h.id === id);
+            if (!hoto) return;
+            
+            // Open in new tab or show in modal
+            alert(`Viewing HOTO for ${hoto.gpName}\n\nDistrict: ${hoto.district}\nBlock: ${hoto.block}\nGP Shifted: ${hoto.gpShifted}\nSubmitted By: ${hoto.submittedBy}`);
+        }
+
+        function editHOTO(id) {
+            const hoto = hotoData.find(h => h.id === id);
+            if (!hoto) return;
+            
+            // Populate form
+            document.getElementById('hotoDate').value = hoto.date;
+            document.getElementById('district').value = hoto.district;
+            document.getElementById('block').value = hoto.block;
+            document.getElementById('gpName').value = hoto.gpName;
+            document.getElementById('gpCode').value = hoto.gpCode;
+            document.getElementById('gpShifted').value = hoto.gpShifted;
+            document.getElementById('equipmentMake').value = hoto.equipmentMake;
+            document.getElementById('originalAddress').value = hoto.originalAddress;
+            document.getElementById('originalLat').value = hoto.originalLat;
+            document.getElementById('originalLong').value = hoto.originalLong;
+            document.getElementById('shiftedAddress').value = hoto.shiftedAddress;
+            document.getElementById('shiftedLat').value = hoto.shiftedLat;
+            document.getElementById('shiftedLong').value = hoto.shiftedLong;
+            document.getElementById('ontMake').value = hoto.ontMake;
+            document.getElementById('ontSerial').value = hoto.ontSerial;
+            document.getElementById('ontStatus').value = hoto.ontStatus;
+            document.getElementById('ontLocation').value = hoto.ontLocation;
+            document.getElementById('ccuMake').value = hoto.ccuMake;
+            document.getElementById('ccuSerial').value = hoto.ccuSerial;
+            document.getElementById('ccuStatus').value = hoto.ccuStatus;
+            document.getElementById('ccuLocation').value = hoto.ccuLocation;
+            document.getElementById('solarMake').value = hoto.solarMake;
+            document.getElementById('solarSerial').value = hoto.solarSerial;
+            document.getElementById('solarCapacity').value = hoto.solarCapacity;
+            document.getElementById('solarStatus').value = hoto.solarStatus;
+            document.getElementById('batteryMake').value = hoto.batteryMake;
+            document.getElementById('batterySerial').value = hoto.batterySerial;
+            document.getElementById('batteryCapacity').value = hoto.batteryCapacity;
+            document.getElementById('batteryStatus').value = hoto.batteryStatus;
+            document.getElementById('gponCabinet').value = hoto.gponCabinet;
+            document.getElementById('earthing').value = hoto.earthing;
+            document.getElementById('custodianName').value = hoto.custodianName;
+            document.getElementById('custodianMobile').value = hoto.custodianMobile;
+            document.getElementById('custodianAddress').value = hoto.custodianAddress;
+            
+            // Show/hide sections based on GP shifted
+            toggleShiftedSection();
+            
+            // Update save button
+            document.getElementById('saveButton').innerHTML = '<i class="fas fa-save"></i> Update HOTO Data';
+            editMode = true;
+            editingHOTOId = id;
+            
+            // Switch to data entry tab
+            switchTab('data-entry-tab');
+            
+            showToast('Edit mode activated', 'info');
+        }
+
+        function deleteHOTO(id) {
+            if (!confirm('Are you sure you want to delete this HOTO record?')) {
+                return;
+            }
+            
+            // Find and remove from local array
+            const index = hotoData.findIndex(h => h.id === id);
+            if (index !== -1) {
+                // Also delete from Supabase if online and synced
+                const hoto = hotoData[index];
+                if (isOnline && hoto.synced_to_cloud && hoto.supabase_id) {
+                    supabase
+                        .from('hoto_data')
+                        .delete()
+                        .eq('id', hoto.supabase_id)
+                        .then(() => {
+                            hotoData.splice(index, 1);
+                            localStorage.setItem('hotoData', JSON.stringify(hotoData));
+                            loadHOTOList();
+                            updateStats();
+                            showToast('HOTO record deleted successfully', 'success');
+                        })
+                        .catch(error => {
+                            console.error('Delete error:', error);
+                            showToast('Error deleting from cloud', 'error');
+                        });
+                } else {
+                    hotoData.splice(index, 1);
+                    localStorage.setItem('hotoData', JSON.stringify(hotoData));
+                    loadHOTOList();
+                    updateStats();
+                    showToast('HOTO record deleted successfully', 'success');
+                }
+            }
+        }
+
+        // Export Functions
+        function exportToExcel() {
+            if (hotoData.length === 0) {
+                showToast('No data to export', 'warning');
+                return;
+            }
+            
+            try {
+                // Prepare data for export
+                const exportData = hotoData.map(hoto => ({
+                    'Date': hoto.date,
+                    'District': hoto.district,
+                    'Block': hoto.block,
+                    'GP Name': hoto.gpName,
+                    'GP Code': hoto.gpCode,
+                    'GP Shifted': hoto.gpShifted,
+                    'Equipment Make': hoto.equipmentMake,
+                    'Original Address': hoto.originalAddress,
+                    'Original Latitude': hoto.originalLat,
+                    'Original Longitude': hoto.originalLong,
+                    'Shifted Address': hoto.shiftedAddress,
+                    'Shifted Latitude': hoto.shiftedLat,
+                    'Shifted Longitude': hoto.shiftedLong,
+                    'ONT Make': hoto.ontMake,
+                    'ONT Serial': hoto.ontSerial,
+                    'ONT Status': hoto.ontStatus,
+                    'ONT Location': hoto.ontLocation,
+                    'CCU Make': hoto.ccuMake,
+                    'CCU Serial': hoto.ccuSerial,
+                    'CCU Status': hoto.ccuStatus,
+                    'CCU Location': hoto.ccuLocation,
+                    'Solar Make': hoto.solarMake,
+                    'Solar Serial': hoto.solarSerial,
+                    'Solar Capacity': hoto.solarCapacity,
+                    'Solar Status': hoto.solarStatus,
+                    'Battery Make': hoto.batteryMake,
+                    'Battery Serial': hoto.batterySerial,
+                    'Battery Capacity': hoto.batteryCapacity,
+                    'Battery Status': hoto.batteryStatus,
+                    'GPON Cabinet': hoto.gponCabinet,
+                    'Earthing': hoto.earthing,
+                    'Custodian Name': hoto.custodianName,
+                    'Custodian Mobile': hoto.custodianMobile,
+                    'Custodian Address': hoto.custodianAddress,
+                    'Submitted By': hoto.submittedBy,
+                    'Employee ID': hoto.employeeId,
+                    'Synced': hoto.synced_to_cloud ? 'Yes' : 'No',
+                    'Timestamp': hoto.timestamp
+                }));
+                
+                // Create worksheet
+                const worksheet = XLSX.utils.json_to_sheet(exportData);
+                
+                // Create workbook
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, 'HOTO Data');
+                
+                // Generate filename
+                const filename = `HOTO_Data_${new Date().toISOString().split('T')[0]}.xlsx`;
+                
+                // Download
+                XLSX.writeFile(workbook, filename);
+                
+                showToast('Excel file exported successfully', 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showToast('Error exporting to Excel', 'error');
+            }
+        }
+
+        function exportToPDF() {
+            if (hotoData.length === 0) {
+                showToast('No data to export', 'warning');
+                return;
+            }
+            
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Add title
+                doc.setFontSize(16);
+                doc.text('GP HOTO Data Report', 105, 15, { align: 'center' });
+                
+                // Add date
+                doc.setFontSize(10);
+                doc.text(`Generated on: ${new Date().toLocaleString()}`, 105, 22, { align: 'center' });
+                
+                // Prepare data for table
+                const tableData = hotoData.map(hoto => [
+                    hoto.date,
+                    hoto.district,
+                    hoto.block,
+                    hoto.gpName,
+                    hoto.gpCode,
+                    hoto.gpShifted,
+                    hoto.synced_to_cloud ? 'Yes' : 'No'
+                ]);
+                
+                // Add table
+                doc.autoTable({
+                    head: [['Date', 'District', 'Block', 'GP Name', 'GP Code', 'GP Shifted', 'Synced']],
+                    body: tableData,
+                    startY: 30,
+                    theme: 'striped',
+                    headStyles: { fillColor: [37, 99, 235] },
+                    margin: { top: 30 }
+                });
+                
+                // Generate filename
+                const filename = `HOTO_Data_${new Date().toISOString().split('T')[0]}.pdf`;
+                
+                // Download
+                doc.save(filename);
+                
+                showToast('PDF file exported successfully', 'success');
+            } catch (error) {
+                console.error('PDF export error:', error);
+                showToast('Error exporting to PDF', 'error');
+            }
+        }
+
+        // District and Block Access Control
+        function loadDistrictAccessControl() {
+            const districtList = document.getElementById('districtAccessList');
+            const districts = [...new Set(gpMasterData.map(gp => gp.District))].sort();
+            
+            districtList.innerHTML = '';
+            
+            // Add "All Districts" checkbox
+            const allItem = document.createElement('div');
+            allItem.className = 'access-control-item';
+            allItem.innerHTML = `
+                <input type="checkbox" id="district-all" class="access-control-checkbox"
+                    onchange="toggleAllDistricts(this.checked)"
+                    ${currentUser.districtAccess && currentUser.districtAccess.includes('all') ? 'checked' : ''}>
+                <label for="district-all" style="font-weight: 500;">All Districts</label>
+            `;
+            districtList.appendChild(allItem);
+            
+            // Add individual districts
+            districts.forEach(district => {
+                const item = document.createElement('div');
+                item.className = 'access-control-item';
+                item.innerHTML = `
+                    <input type="checkbox" class="district-checkbox access-control-checkbox" 
+                        value="${district}"
+                        onchange="updateDistrictAccess()"
+                        ${currentUser.districtAccess && currentUser.districtAccess.includes(district) ? 'checked' : ''}
+                        ${currentUser.districtAccess && currentUser.districtAccess.includes('all') ? 'disabled' : ''}>
+                    <label for="${district}">${district}</label>
+                `;
+                districtList.appendChild(item);
+            });
+        }
+
+        function loadBlockAccessControl() {
+            const blockList = document.getElementById('blockAccessList');
+            const blocks = [...new Set(gpMasterData.map(gp => gp.Block))].sort();
+            
+            blockList.innerHTML = '';
+            
+            // Add "All Blocks" checkbox
+            const allItem = document.createElement('div');
+            allItem.className = 'access-control-item';
+            allItem.innerHTML = `
+                <input type="checkbox" id="block-all" class="access-control-checkbox"
+                    onchange="toggleAllBlocks(this.checked)"
+                    ${currentUser.blockAccess && currentUser.blockAccess.includes('all') ? 'checked' : ''}>
+                <label for="block-all" style="font-weight: 500;">All Blocks</label>
+            `;
+            blockList.appendChild(allItem);
+            
+            // Add individual blocks
+            blocks.forEach(block => {
+                const item = document.createElement('div');
+                item.className = 'access-control-item';
+                item.innerHTML = `
+                    <input type="checkbox" class="block-checkbox access-control-checkbox" 
+                        value="${block}"
+                        onchange="updateBlockAccess()"
+                        ${currentUser.blockAccess && currentUser.blockAccess.includes(block) ? 'checked' : ''}
+                        ${currentUser.blockAccess && currentUser.blockAccess.includes('all') ? 'disabled' : ''}>
+                    <label for="${block}">${block}</label>
+                `;
+                blockList.appendChild(item);
+            });
+        }
+
+        function toggleAllDistricts(checked) {
+            const checkboxes = document.querySelectorAll('.district-checkbox');
+            checkboxes.forEach(cb => {
+                cb.disabled = checked;
+                if (checked) {
+                    cb.checked = false;
+                }
+            });
+            updateDistrictAccess();
+        }
+
+        function toggleAllBlocks(checked) {
+            const checkboxes = document.querySelectorAll('.block-checkbox');
+            checkboxes.forEach(cb => {
+                cb.disabled = checked;
+                if (checked) {
+                    cb.checked = false;
+                }
+            });
+            updateBlockAccess();
+        }
+
+        function updateDistrictAccess() {
+            const allChecked = document.getElementById('district-all').checked;
+            const selectedDistricts = [];
+            
+            if (allChecked) {
+                selectedDistricts.push('all');
+            } else {
+                const checkboxes = document.querySelectorAll('.district-checkbox:checked');
+                checkboxes.forEach(cb => {
+                    selectedDistricts.push(cb.value);
+                });
+            }
+            
+            // Update current user
+            currentUser.districtAccess = selectedDistricts;
+            
+            // Update in local storage
+            const users = JSON.parse(localStorage.getItem('users') || '{}');
+            if (users[currentUser.employeeId]) {
+                users[currentUser.employeeId].districtAccess = selectedDistricts;
+                localStorage.setItem('users', JSON.stringify(users));
+            }
+            
+            // Update in Supabase if online
+            if (isOnline) {
+                supabase
+                    .from('users')
+                    .update({ district_access: selectedDistricts })
+                    .eq('employee_id', currentUser.employeeId)
+                    .then(() => {
+                        showToast('District access updated', 'success');
+                    });
+            }
+            
+            localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
+        }
+
+        function updateBlockAccess() {
+            const allChecked = document.getElementById('block-all').checked;
+            const selectedBlocks = [];
+            
+            if (allChecked) {
+                selectedBlocks.push('all');
+            } else {
+                const checkboxes = document.querySelectorAll('.block-checkbox:checked');
+                checkboxes.forEach(cb => {
+                    selectedBlocks.push(cb.value);
+                });
+            }
+            
+            // Update current user
+            currentUser.blockAccess = selectedBlocks;
+            
+            // Update in local storage
+            const users = JSON.parse(localStorage.getItem('users') || '{}');
+            if (users[currentUser.employeeId]) {
+                users[currentUser.employeeId].blockAccess = selectedBlocks;
+                localStorage.setItem('users', JSON.stringify(users));
+            }
+            
+            // Update in Supabase if online
+            if (isOnline) {
+                supabase
+                    .from('users')
+                    .update({ block_access: selectedBlocks })
+                    .eq('employee_id', currentUser.employeeId)
+                    .then(() => {
+                        showToast('Block access updated', 'success');
+                    });
+            }
+            
+            localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
+        }
+
+        // User Management Functions
         function loadUsersTable() {
             const users = JSON.parse(localStorage.getItem('users') || '{}');
             const tableBody = document.getElementById('usersTableBody');
@@ -1171,48 +3951,39 @@
                     'All Blocks' : 
                     (user.blockAccess || []).join(', ') || 'None';
                 
-                const row = `
-                    <tr>
-                        <td>${user.employeeId}</td>
-                        <td>${user.name || ''}</td>
-                        <td>${user.designation || ''}</td>
-                        <td>${user.email || 'No email'}</td>
-                        <td>${user.phone || ''}</td>
-                        <td><span class="status-badge ${user.accessLevel === 'full' ? 'status-approved' : 'status-pending'}">${user.accessLevel === 'full' ? 'Full Access' : 'Data Entry'}</span></td>
-                        <td>${districtAccess}</td>
-                        <td>${blockAccess}</td>
-                        <td>
-                            <button class="btn btn-sm btn-info" onclick="editUser('${user.employeeId}')">
-                                <i class="fas fa-edit"></i> Edit
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteUser('${user.employeeId}')" ${user.employeeId === currentUser.employeeId ? 'disabled' : ''}>
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${user.employeeId}</td>
+                    <td>${user.name || ''}</td>
+                    <td>${user.designation || ''}</td>
+                    <td>${user.email || 'No email'}</td>
+                    <td>${user.phone || ''}</td>
+                    <td><span class="status-badge ${user.accessLevel === 'full' ? 'status-approved' : 'status-pending'}">${user.accessLevel === 'full' ? 'Full Access' : 'Data Entry'}</span></td>
+                    <td>${districtAccess}</td>
+                    <td>${blockAccess}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="editUser('${user.employeeId}')">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteUser('${user.employeeId}')" ${user.employeeId === currentUser.employeeId ? 'disabled' : ''}>
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
                 `;
-                tableBody.innerHTML += row;
+                tableBody.appendChild(row);
             });
         }
 
         function addNewUser() {
             const employeeId = document.getElementById('newEmployeeId').value.trim();
             const name = document.getElementById('newUserName').value.trim();
+            const email = document.getElementById('newUserEmail').value.trim();
             const designation = document.getElementById('newUserDesignation').value.trim();
             const phone = document.getElementById('newUserPhone').value.trim();
             const accessLevel = document.getElementById('newUserAccessLevel').value;
             
-            // Get email from new field (you need to add this field to your HTML)
-            const email = document.getElementById('newUserEmail') ? document.getElementById('newUserEmail').value.trim() : '';
-            
-            if (!employeeId || !name) {
-                showToast('Employee ID and Name are required', 'error');
-                return;
-            }
-            
-            // Email is now mandatory
-            if (!email) {
-                showToast('Email address is mandatory for new users', 'error');
+            if (!employeeId || !name || !email) {
+                showToast('Employee ID, Name, and Email are required', 'error');
                 return;
             }
             
@@ -1268,27 +4039,28 @@
             
             // Also add to Supabase if online
             if (isOnline) {
-                try {
-                    const { error } = await supabase
-                        .from('users')
-                        .insert([{
-                            employee_id: employeeId,
-                            full_name: name,
-                            email: email,
-                            designation: designation,
-                            phone_number: phone,
-                            access_level: accessLevel,
-                            district_access: selectedDistricts,
-                            block_access: selectedBlocks,
-                            password: employeeId, // Default password is employee ID
-                            first_login: true,
-                            created_at: new Date().toISOString()
-                        }]);
-                    
-                    if (error) throw error;
-                } catch (error) {
-                    console.error('Error adding user to Supabase:', error);
-                }
+                supabase
+                    .from('users')
+                    .insert([{
+                        employee_id: employeeId,
+                        full_name: name,
+                        email: email,
+                        designation: designation,
+                        phone_number: phone,
+                        access_level: accessLevel,
+                        district_access: selectedDistricts,
+                        block_access: selectedBlocks,
+                        password: employeeId, // Default password is employee ID
+                        first_login: true,
+                        created_at: new Date().toISOString()
+                    }])
+                    .then(() => {
+                        showToast('User added to cloud database', 'success');
+                    })
+                    .catch(error => {
+                        console.error('Supabase error:', error);
+                        showToast('User added locally only', 'warning');
+                    });
             }
             
             loadUsersTable();
@@ -1296,11 +4068,9 @@
             // Clear form
             document.getElementById('newEmployeeId').value = '';
             document.getElementById('newUserName').value = '';
+            document.getElementById('newUserEmail').value = '';
             document.getElementById('newUserDesignation').value = '';
             document.getElementById('newUserPhone').value = '';
-            if (document.getElementById('newUserEmail')) {
-                document.getElementById('newUserEmail').value = '';
-            }
             
             // Reset checkboxes
             document.getElementById('district-all').checked = false;
@@ -1312,26 +4082,209 @@
             showToast('User added successfully. They must change password on first login.', 'success');
         }
 
-        // Edit user function (update to include email)
         function editUser(employeeId) {
             const users = JSON.parse(localStorage.getItem('users') || '{}');
             const user = users[employeeId];
             
             if (!user) return;
             
-            // Populate edit form - add email field
+            // Populate edit form
             document.getElementById('newEmployeeId').value = user.employeeId;
             document.getElementById('newUserName').value = user.name;
+            document.getElementById('newUserEmail').value = user.email || '';
             document.getElementById('newUserDesignation').value = user.designation;
             document.getElementById('newUserPhone').value = user.phone;
             document.getElementById('newUserAccessLevel').value = user.accessLevel;
             
-            // Set email if field exists
-            if (document.getElementById('newUserEmail')) {
-                document.getElementById('newUserEmail').value = user.email || '';
+            // Update district checkboxes
+            const districtAll = document.getElementById('district-all');
+            const districtCheckboxes = document.querySelectorAll('.district-checkbox');
+            
+            if (user.districtAccess && user.districtAccess.includes('all')) {
+                districtAll.checked = true;
+                districtCheckboxes.forEach(cb => {
+                    cb.disabled = true;
+                    cb.checked = false;
+                });
+            } else {
+                districtAll.checked = false;
+                districtCheckboxes.forEach(cb => {
+                    cb.disabled = false;
+                    cb.checked = user.districtAccess && user.districtAccess.includes(cb.value);
+                });
             }
             
-            // ... rest of existing editUser code ...
+            // Update block checkboxes
+            const blockAll = document.getElementById('block-all');
+            const blockCheckboxes = document.querySelectorAll('.block-checkbox');
+            
+            if (user.blockAccess && user.blockAccess.includes('all')) {
+                blockAll.checked = true;
+                blockCheckboxes.forEach(cb => {
+                    cb.disabled = true;
+                    cb.checked = false;
+                });
+            } else {
+                blockAll.checked = false;
+                blockCheckboxes.forEach(cb => {
+                    cb.disabled = false;
+                    cb.checked = user.blockAccess && user.blockAccess.includes(cb.value);
+                });
+            }
+            
+            showToast('User details loaded for editing', 'info');
+        }
+
+        function deleteUser(employeeId) {
+            if (!confirm('Are you sure you want to delete this user?')) {
+                return;
+            }
+            
+            let users = JSON.parse(localStorage.getItem('users') || '{}');
+            
+            if (!users[employeeId]) {
+                showToast('User not found', 'error');
+                return;
+            }
+            
+            // Delete from local storage
+            delete users[employeeId];
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            // Delete from Supabase if online
+            if (isOnline) {
+                supabase
+                    .from('users')
+                    .delete()
+                    .eq('employee_id', employeeId)
+                    .then(() => {
+                        showToast('User deleted from cloud database', 'success');
+                    })
+                    .catch(error => {
+                        console.error('Supabase error:', error);
+                        showToast('User deleted locally only', 'warning');
+                    });
+            }
+            
+            // Reload table
+            loadUsersTable();
+            
+            showToast('User deleted successfully', 'success');
+        }
+
+        function updateProfile() {
+            const name = document.getElementById('profileName').value.trim();
+            const designation = document.getElementById('profileDesignation').value.trim();
+            const phone = document.getElementById('profilePhone').value.trim();
+            
+            if (!name) {
+                showToast('Name is required', 'error');
+                return;
+            }
+            
+            // Update current user
+            currentUser.name = name;
+            currentUser.designation = designation;
+            currentUser.phone = phone;
+            
+            // Update in local storage
+            localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
+            
+            // Update in users list
+            let users = JSON.parse(localStorage.getItem('users') || '{}');
+            if (users[currentUser.employeeId]) {
+                users[currentUser.employeeId].name = name;
+                users[currentUser.employeeId].designation = designation;
+                users[currentUser.employeeId].phone = phone;
+                localStorage.setItem('users', JSON.stringify(users));
+            }
+            
+            // Update in Supabase if online
+            if (isOnline) {
+                supabase
+                    .from('users')
+                    .update({
+                        full_name: name,
+                        designation: designation,
+                        phone_number: phone
+                    })
+                    .eq('employee_id', currentUser.employeeId)
+                    .then(() => {
+                        showToast('Profile updated in cloud', 'success');
+                    })
+                    .catch(error => {
+                        console.error('Supabase error:', error);
+                        showToast('Profile updated locally only', 'warning');
+                    });
+            }
+            
+            // Update UI
+            document.getElementById('currentUserName').textContent = name;
+            document.getElementById('sidebarUserName').textContent = name;
+            document.getElementById('userAvatar').textContent = name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+            
+            showToast('Profile updated successfully', 'success');
+        }
+
+        function setAccessLevel(level) {
+            if (!currentUser || (currentUser.accessLevel !== 'full' && !currentUser.isAdmin)) {
+                showToast('You do not have permission to change access level', 'error');
+                return;
+            }
+            
+            currentUser.accessLevel = level;
+            
+            // Update in local storage
+            localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
+            
+            // Update in users list
+            let users = JSON.parse(localStorage.getItem('users') || '{}');
+            if (users[currentUser.employeeId]) {
+                users[currentUser.employeeId].accessLevel = level;
+                localStorage.setItem('users', JSON.stringify(users));
+            }
+            
+            // Update in Supabase if online
+            if (isOnline) {
+                supabase
+                    .from('users')
+                    .update({ access_level: level })
+                    .eq('employee_id', currentUser.employeeId)
+                    .then(() => {
+                        showToast('Access level updated in cloud', 'success');
+                    })
+                    .catch(error => {
+                        console.error('Supabase error:', error);
+                        showToast('Access level updated locally only', 'warning');
+                    });
+            }
+            
+            // Update UI
+            document.getElementById('userAccessLevel').value = level;
+            document.getElementById('currentUserRole').textContent = `(${level === 'full' ? 'Full Access' : 'Data Entry Only'})`;
+            document.getElementById('sidebarUserAccess').textContent = level === 'full' ? 'Full System Access' : 'Data Entry Access Only';
+            
+            // Update button states
+            const dataEntryBtn = document.querySelector('.access-btn[onclick="setAccessLevel(\'dataEntry\')"]');
+            const fullAccessBtn = document.querySelector('.access-btn[onclick="setAccessLevel(\'full\')"]');
+            
+            if (level === 'dataEntry') {
+                dataEntryBtn.classList.add('active');
+                fullAccessBtn.classList.remove('active');
+            } else {
+                dataEntryBtn.classList.remove('active');
+                fullAccessBtn.classList.add('active');
+            }
+            
+            // Show/hide user management section
+            const userManagementSection = document.getElementById('userManagementSection');
+            if (level === 'full' || currentUser.isAdmin) {
+                userManagementSection.style.display = 'block';
+            } else {
+                userManagementSection.style.display = 'none';
+            }
+            
+            showToast(`Access level set to ${level === 'full' ? 'Full Access' : 'Data Entry Only'}`, 'success');
         }
 
         // Delete Master Data Function
@@ -1362,6 +4315,7 @@
                 populateDistrictSelect();
                 loadDistrictAccessControl();
                 loadBlockAccessControl();
+                updateMasterDataTable();
                 
                 showToast('GP master data deleted successfully', 'success');
             } catch (error) {
@@ -1370,20 +4324,226 @@
             }
         }
 
-        // Add delete button to GP Master Data Management section
-        // Add this button in your HTML in the settings section:
-        // <button class="btn btn-danger" onclick="deleteMasterData()" style="margin-top: 10px;">
-        //     <i class="fas fa-trash"></i> Delete All GP Master Data
-        // </button>
+        // Analytics Functions
+        function initializeCharts() {
+            if (hotoData.length === 0) return;
+            
+            // District Distribution Chart
+            const districtData = {};
+            hotoData.forEach(hoto => {
+                districtData[hoto.district] = (districtData[hoto.district] || 0) + 1;
+            });
+            
+            const districtChart = new ApexCharts(document.querySelector("#districtChart"), {
+                series: Object.values(districtData),
+                chart: {
+                    type: 'donut',
+                    height: 350
+                },
+                labels: Object.keys(districtData),
+                title: {
+                    text: 'Records by District',
+                    align: 'center'
+                },
+                colors: ['#2563eb', '#059669', '#7c3aed', '#dc2626', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6'],
+                legend: {
+                    position: 'bottom'
+                }
+            });
+            
+            districtChart.render();
+            charts.district = districtChart;
+            
+            // Equipment Make Chart
+            const equipmentData = {};
+            hotoData.forEach(hoto => {
+                equipmentData[hoto.equipmentMake] = (equipmentData[hoto.equipmentMake] || 0) + 1;
+            });
+            
+            const equipmentChart = new ApexCharts(document.querySelector("#equipmentChart"), {
+                series: [{
+                    name: 'Records',
+                    data: Object.values(equipmentData)
+                }],
+                chart: {
+                    type: 'bar',
+                    height: 350
+                },
+                plotOptions: {
+                    bar: {
+                        borderRadius: 4,
+                        horizontal: true,
+                    }
+                },
+                dataLabels: {
+                    enabled: false
+                },
+                xaxis: {
+                    categories: Object.keys(equipmentData),
+                },
+                title: {
+                    text: 'Equipment Make Distribution',
+                    align: 'center'
+                },
+                colors: ['#2563eb']
+            });
+            
+            equipmentChart.render();
+            charts.equipment = equipmentChart;
+            
+            // Status Chart
+            const statusData = {
+                'Working': 0,
+                'Not Working': 0,
+                'Damaged': 0
+            };
+            
+            hotoData.forEach(hoto => {
+                ['ontStatus', 'ccuStatus', 'solarStatus', 'batteryStatus'].forEach(statusField => {
+                    if (hoto[statusField]) {
+                        statusData[hoto[statusField]] = (statusData[hoto[statusField]] || 0) + 1;
+                    }
+                });
+            });
+            
+            const statusChart = new ApexCharts(document.querySelector("#statusChart"), {
+                series: Object.values(statusData),
+                chart: {
+                    type: 'pie',
+                    height: 350
+                },
+                labels: Object.keys(statusData),
+                title: {
+                    text: 'Equipment Status',
+                    align: 'center'
+                },
+                colors: ['#10b981', '#f59e0b', '#ef4444'],
+                legend: {
+                    position: 'bottom'
+                }
+            });
+            
+            statusChart.render();
+            charts.status = statusChart;
+            
+            // Monthly Trend Chart
+            const monthlyData = {};
+            hotoData.forEach(hoto => {
+                const month = new Date(hoto.date).toLocaleString('default', { month: 'short' });
+                monthlyData[month] = (monthlyData[month] || 0) + 1;
+            });
+            
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthlySeries = months.map(month => monthlyData[month] || 0);
+            
+            const monthlyChart = new ApexCharts(document.querySelector("#monthlyChart"), {
+                series: [{
+                    name: 'Records',
+                    data: monthlySeries
+                }],
+                chart: {
+                    type: 'line',
+                    height: 350
+                },
+                stroke: {
+                    curve: 'smooth',
+                    width: 3
+                },
+                xaxis: {
+                    categories: months
+                },
+                title: {
+                    text: 'Monthly Submission Trend',
+                    align: 'center'
+                },
+                colors: ['#7c3aed']
+            });
+            
+            monthlyChart.render();
+            charts.monthly = monthlyChart;
+        }
 
-        // Analytics Functions (keep existing)
+        // Tab switching
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all menu items
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabId).classList.add('active');
+            
+            // Set active menu item
+            const menuItems = {
+                'dashboard-tab': '.menu-item:nth-child(1)',
+                'data-entry-tab': '.menu-item:nth-child(2)',
+                'view-data-tab': '.menu-item:nth-child(3)',
+                'analytics-tab': '.menu-item:nth-child(4)',
+                'master-data-tab': '.menu-item:nth-child(5)',
+                'settings-tab': '.menu-item:nth-child(6)',
+                'help-tab': '.menu-item:nth-child(7)'
+            };
+            
+            const activeMenuItem = document.querySelector(menuItems[tabId]);
+            if (activeMenuItem) {
+                activeMenuItem.classList.add('active');
+            }
+            
+            // Update header title
+            const headerTitle = document.querySelector('.header-left h1');
+            const titles = {
+                'dashboard-tab': '<i class="fas fa-tachometer-alt"></i> Dashboard',
+                'data-entry-tab': '<i class="fas fa-plus-circle"></i> Data Entry',
+                'view-data-tab': '<i class="fas fa-database"></i> View Data',
+                'analytics-tab': '<i class="fas fa-chart-bar"></i> Analytics',
+                'master-data-tab': '<i class="fas fa-table"></i> Master Data',
+                'settings-tab': '<i class="fas fa-cog"></i> Settings',
+                'help-tab': '<i class="fas fa-question-circle"></i> Help & Support'
+            };
+            
+            headerTitle.innerHTML = titles[tabId];
+            
+            // Load specific tab content
+            switch(tabId) {
+                case 'view-data-tab':
+                    loadHOTOList();
+                    break;
+                case 'analytics-tab':
+                    initializeCharts();
+                    break;
+                case 'master-data-tab':
+                    updateMasterDataTable();
+                    break;
+                case 'settings-tab':
+                    loadNote();
+                    break;
+            }
+        }
 
-        // Tab switching (keep existing)
-
-        // Toast notification (keep existing)
-
-        // Data management functions (keep existing)
+        // Toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toastMessage.textContent = message;
+            toast.className = 'toast';
+            toast.classList.add(type);
+            
+            // Show toast
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 100);
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
     </script>
 </body>
 </html>
-
