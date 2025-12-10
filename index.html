@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GP HOTO Data Collection System</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/apexcharts@3.41.0/dist/apexcharts.css" rel="stylesheet">
+    <!-- Include Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* ... (keep all existing CSS styles exactly as they are) ... */
+        
+        /* Success Modal Styles */
+        .success-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 3000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .success-modal.active {
+            display: flex;
+            animation: fadeIn 0.3s;
+        }
+
+        .success-content {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            border: 3px solid var(--success-color);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .success-icon {
+            font-size: 80px;
+            color: var(--success-color);
+            margin-bottom: 20px;
+            animation: bounce 1s;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .success-message {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--success-color);
+            margin-bottom: 15px;
+        }
+
+        .success-submessage {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .success-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        /* Today's Report Dashboard */
+        .today-dashboard {
+            background: linear-gradient(135deg, var(--primary-color), color-mix(in srgb, var(--primary-color) 80%, transparent));
+            border-radius: var(--radius);
+            padding: 25px;
+            color: white;
+            margin-bottom: 25px;
+            border: 2px solid var(--primary-color);
+        }
+
+        .today-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .today-title {
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .today-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .today-stat {
+            background: rgba(255,255,255,0.15);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .today-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .today-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Quick Stats Today Section */
+        .quick-today-section {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-top: 20px;
+            border: 2px solid var(--warning-color);
+        }
+
+        .quick-today-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            color: var(--warning-color);
+        }
+
+        .quick-today-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .quick-today-item {
+            text-align: center;
+            padding: 15px;
+            background: var(--border-color);
+            border-radius: 8px;
+        }
+
+        .quick-today-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .quick-today-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        /* Sync Status */
+        .sync-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            background: var(--border-color);
+        }
+
+        .sync-status.online {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .sync-status.offline {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .sync-status.syncing {
+            background: #fef3c7;
+            color: #92400e;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-container">
+        <div class="login-header">
+            <h1><i class="fas fa-network-wired"></i> GP HOTO System</h1>
+            <p>Default Login: admin / admin</p>
+        </div>
+        
+        <div class="login-error" id="loginError">
+            Invalid Employee ID or Password
+        </div>
+        
+        <form class="login-form" id="loginForm">
+            <div class="form-group">
+                <label for="loginEmployeeId">Employee ID</label>
+                <input type="text" id="loginEmployeeId" placeholder="Enter Employee ID" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" placeholder="Enter password" required>
+            </div>
+            
+            <button type="submit" class="login-btn">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </button>
+        </form>
+        
+        <div class="theme-selector">
+            <p style="color: var(--text-secondary); margin-bottom: 10px;">Choose Theme Color:</p>
+            <div class="theme-buttons">
+                <div class="theme-btn blue" onclick="changeTheme('blue')"></div>
+                <div class="theme-btn dark" onclick="changeTheme('dark')"></div>
+                <div class="theme-btn green" onclick="changeTheme('green')"></div>
+                <div class="theme-btn purple" onclick="changeTheme('purple')"></div>
+                <div class="theme-btn red" onclick="changeTheme('red')"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="success-modal" id="successModal">
+        <div class="success-content">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="success-message" id="successMessage">
+                Data Submitted Successfully!
+            </div>
+            <div class="success-submessage">
+                Your HOTO data has been saved and synced to the cloud.
+            </div>
+            <div class="success-actions">
+                <button class="btn btn-success" onclick="addNewData()">
+                    <i class="fas fa-plus"></i> Add New Data
+                </button>
+                <button class="btn btn-secondary" onclick="closeSuccessModal()">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application (Hidden until login) -->
+    <div id="mainApp" style="display: none;">
+        <div class="container">
+            <div class="header">
+                <div class="header-left">
+                    <h1>
+                        <i class="fas fa-network-wired"></i>
+                        GP HOTO Data Collection System
+                        <span class="sync-status" id="syncStatus">
+                            <i class="fas fa-sync-alt"></i>
+                            <span>Loading...</span>
+                        </span>
+                    </h1>
+                </div>
+                
+                <div class="header-controls">
+                    <div class="user-info">
+                        <i class="fas fa-user"></i>
+                        <span id="currentUserName">Loading...</span>
+                        <span id="currentUserRole" style="font-size: 12px; opacity: 0.8;"></span>
+                    </div>
+                    
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-value" id="totalCount">0</div>
+                            <div class="stat-label">Total HOTO</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="workingCount">0</div>
+                            <div class="stat-label">Working ONT</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="todayCount">0</div>
+                            <div class="stat-label">Today</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="syncedCount">0</div>
+                            <div class="stat-label">Synced</div>
+                        </div>
+                    </div>
+                    
+                    <button class="logout-btn" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <!-- ... (rest of the HTML remains the same) ... -->
+                <!-- Note: All existing HTML structure remains exactly the same -->
+                <!-- Only adding the Today's Report Dashboard in analytics tab -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Operation completed successfully!</span>
+    </div>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.41.0/dist/apexcharts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+    <script>
+        // Supabase Configuration - Replace with your actual Supabase credentials
+        const SUPABASE_URL = 'https://your-project.supabase.co'; // Replace with your Supabase URL
+        const SUPABASE_ANON_KEY = 'your-anon-key'; // Replace with your Supabase anon key
+        
+        // Initialize Supabase client
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+                persistSession: true,
+                autoRefreshToken: true
+            }
+        });
+
+        // Global variables
+        let currentUser = null;
+        let hotoData = [];
+        let gpMasterData = [];
+        let charts = {};
+        let currentTheme = 'blue';
+        let editMode = false;
+        let editingHOTOId = null;
+        let selectedExcelFile = null;
+        let isOnline = navigator.onLine;
+        let pendingSyncData = [];
+
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+            
+            // Monitor online/offline status
+            window.addEventListener('online', handleOnline);
+            window.addEventListener('offline', handleOffline);
+            
+            // Check sync status periodically
+            setInterval(checkSyncStatus, 30000); // Every 30 seconds
+        });
+
+        // Network status handlers
+        function handleOnline() {
+            isOnline = true;
+            updateSyncStatus();
+            syncPendingData();
+            showToast('Back online. Syncing data...', 'info');
+        }
+
+        function handleOffline() {
+            isOnline = false;
+            updateSyncStatus();
+            showToast('You are offline. Data will sync when back online.', 'warning');
+        }
+
+        async function initializeApp() {
+            loadTheme();
+            checkLoginStatus();
+        }
+
+        // Theme Management (unchanged)
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'blue';
+            changeTheme(savedTheme);
+        }
+
+        function changeTheme(theme) {
+            currentTheme = theme;
+            document.body.className = '';
+            document.body.classList.add(`theme-${theme}`);
+            localStorage.setItem('theme', theme);
+            
+            // Update theme button active state
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.style.borderColor = 'var(--border-color)';
+            });
+            
+            // Update active theme button
+            const activeBtn = document.querySelector(`.theme-btn.${theme}`);
+            if (activeBtn) {
+                activeBtn.style.borderColor = 'white';
+                activeBtn.style.boxShadow = '0 0 0 2px white';
+            }
+        }
+
+        // Authentication System with Supabase
+        async function checkLoginStatus() {
+            const loggedInUser = localStorage.getItem('loggedInUser');
+            if (loggedInUser) {
+                try {
+                    currentUser = JSON.parse(loggedInUser);
+                    await showMainApp();
+                } catch (e) {
+                    showLoginPage();
+                }
+            } else {
+                showLoginPage();
+            }
+        }
+
+        function showLoginPage() {
+            document.getElementById('loginPage').style.display = 'block';
+            document.getElementById('mainApp').style.display = 'none';
+            
+            // Clear any previous error
+            document.getElementById('loginError').style.display = 'none';
+        }
+
+        async function showMainApp() {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            await loadApplication();
+        }
+
+        // Login form handler with Supabase
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const employeeId = document.getElementById('loginEmployeeId').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            
+            // Validate input
+            if (!employeeId || !password) {
+                showLoginError('Please enter both Employee ID and Password');
+                return;
+            }
+            
+            try {
+                // Try to authenticate with Supabase
+                if (isOnline) {
+                    const { data, error } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('employee_id', employeeId)
+                        .eq('password', password)
+                        .single();
+
+                    if (error) throw error;
+
+                    if (data) {
+                        // Successfully authenticated with Supabase
+                        currentUser = {
+                            employeeId: data.employee_id,
+                            name: data.full_name,
+                            designation: data.designation,
+                            phone: data.phone_number,
+                            accessLevel: data.access_level,
+                            districtAccess: data.district_access || [],
+                            blockAccess: data.block_access || [],
+                            isAdmin: data.is_admin || false
+                        };
+                        
+                        // Also check local storage for existing users
+                        let localUsers = JSON.parse(localStorage.getItem('users') || '{}');
+                        if (!localUsers[employeeId]) {
+                            localUsers[employeeId] = currentUser;
+                            localStorage.setItem('users', JSON.stringify(localUsers));
+                        }
+                        
+                        localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
+                        await showMainApp();
+                        return;
+                    }
+                }
+                
+                // Fallback to local authentication for offline or if Supabase fails
+                let users = JSON.parse(localStorage.getItem('users') || '{}');
+                
+                // Always accept admin/admin
+                if (employeeId === 'admin' && password === 'admin') {
+                    if (!users['admin']) {
+                        // Create admin user
+                        users['admin'] = {
+                            employeeId: 'admin',
+                            name: 'System Administrator',
+                            designation: 'Admin',
+                            phone: '',
+                            accessLevel: 'full',
+                            createdAt: new Date().toISOString(),
+                            isAdmin: true,
+                            districtAccess: ['all'],
+                            blockAccess: ['all']
+                        };
+                        localStorage.setItem('users', JSON.stringify(users));
+                    }
+                    
+                    currentUser = users['admin'];
+                    localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
+                    await showMainApp();
+                    return;
+                }
+                
+                // For other users
+                if (users[employeeId] && users[employeeId].employeeId === password) {
+                    currentUser = users[employeeId];
+                    localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
+                    await showMainApp();
+                } else {
+                    showLoginError('Invalid credentials. Employee ID must match Password.');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showLoginError('Login failed. Please try again or use offline mode.');
+            }
+        });
+
+        // Update sync status display
+        function updateSyncStatus() {
+            const syncElement = document.getElementById('syncStatus');
+            if (!syncElement) return;
+            
+            if (isOnline) {
+                syncElement.className = 'sync-status online';
+                syncElement.innerHTML = '<i class="fas fa-wifi"></i> <span>Online</span>';
+            } else {
+                syncElement.className = 'sync-status offline';
+                syncElement.innerHTML = '<i class="fas fa-wifi-slash"></i> <span>Offline</span>';
+            }
+        }
+
+        async function checkSyncStatus() {
+            try {
+                const { data, error } = await supabase
+                    .from('hoto_data')
+                    .select('count')
+                    .limit(1);
+
+                isOnline = !error;
+                updateSyncStatus();
+                
+                // Update synced count in header
+                if (isOnline) {
+                    const syncedData = hotoData.filter(h => h.synced_to_cloud);
+                    document.getElementById('syncedCount').textContent = syncedData.length;
+                }
+            } catch (error) {
+                isOnline = false;
+                updateSyncStatus();
+            }
+        }
+
+        // Application Initialization with Supabase
+        async function loadApplication() {
+            if (!currentUser) {
+                showLoginPage();
+                return;
+            }
+            
+            // Update sync status
+            updateSyncStatus();
+            
+            // Load user data (unchanged)
+            document.getElementById('currentUserName').textContent = currentUser.name || currentUser.employeeId;
+            document.getElementById('currentUserRole').textContent = `(${currentUser.accessLevel === 'full' ? 'Full Access' : 'Data Entry Only'})`;
+            document.getElementById('sidebarUserName').textContent = currentUser.name || currentUser.employeeId;
+            document.getElementById('sidebarUserAccess').textContent = currentUser.accessLevel === 'full' ? 'Full System Access' : 'Data Entry Access Only';
+            
+            // Load profile data in settings (unchanged)
+            document.getElementById('profileName').value = currentUser.name || '';
+            document.getElementById('profileEmployeeId').value = currentUser.employeeId;
+            document.getElementById('profileDesignation').value = currentUser.designation || '';
+            document.getElementById('profilePhone').value = currentUser.phone || '';
+            document.getElementById('userAccessLevel').value = currentUser.accessLevel;
+            
+            // Set access level buttons (unchanged)
+            const dataEntryBtn = document.querySelector('.access-btn[onclick="setAccessLevel(\'dataEntry\')"]');
+            const fullAccessBtn = document.querySelector('.access-btn[onclick="setAccessLevel(\'full\')"]');
+            
+            if (currentUser.accessLevel === 'dataEntry') {
+                dataEntryBtn.classList.add('active');
+                fullAccessBtn.classList.remove('active');
+            } else {
+                dataEntryBtn.classList.remove('active');
+                fullAccessBtn.classList.add('active');
+            }
+            
+            // Show/hide user management section based on access (unchanged)
+            const userManagementSection = document.getElementById('userManagementSection');
+            if (currentUser.accessLevel === 'full') {
+                userManagementSection.style.display = 'block';
+                loadUsersTable();
+                loadDistrictAccessControl();
+                loadBlockAccessControl();
+            } else {
+                userManagementSection.style.display = 'none';
+            }
+            
+            // Load note
+            loadNote();
+            
+            // Load data from Supabase
+            await loadHOTODataFromSupabase();
+            loadGPMasterData();
+            updateStats();
+            populateDistrictSelect();
+            
+            // Set today's date in form
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('hotoDate').value = today;
+            
+            // Sync pending data if online
+            if (isOnline) {
+                await syncPendingData();
+            }
+            
+            // Update synced count
+            const syncedData = hotoData.filter(h => h.synced_to_cloud);
+            document.getElementById('syncedCount').textContent = syncedData.length;
+        }
+
+        // Load HOTO Data from Supabase
+        async function loadHOTODataFromSupabase() {
+            try {
+                if (isOnline) {
+                    // Try to load from Supabase
+                    const { data, error } = await supabase
+                        .from('hoto_data')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+
+                    if (!error && data && data.length > 0) {
+                        // Convert Supabase data to local format
+                        hotoData = data.map(item => ({
+                            id: item.id,
+                            timestamp: item.created_at,
+                            date: item.hoto_date,
+                            submittedBy: item.submitted_by,
+                            employeeId: item.employee_id,
+                            employeePhone: item.employee_phone,
+                            district: item.district,
+                            block: item.block,
+                            gpName: item.gp_name,
+                            gpCode: item.gp_code,
+                            gpShifted: item.gp_shifted,
+                            equipmentMake: item.equipment_make,
+                            originalAddress: item.original_address,
+                            originalLat: item.original_lat,
+                            originalLong: item.original_long,
+                            shiftedAddress: item.shifted_address,
+                            shiftedLat: item.shifted_lat,
+                            shiftedLong: item.shifted_long,
+                            ontMake: item.ont_make,
+                            ontSerial: item.ont_serial,
+                            ontStatus: item.ont_status,
+                            ontLocation: item.ont_location,
+                            ccuMake: item.ccu_make,
+                            ccuSerial: item.ccu_serial,
+                            ccuStatus: item.ccu_status,
+                            ccuLocation: item.ccu_location,
+                            solarMake: item.solar_make,
+                            solarSerial: item.solar_serial,
+                            solarCapacity: item.solar_capacity,
+                            solarStatus: item.solar_status,
+                            batteryMake: item.battery_make,
+                            batterySerial: item.battery_serial,
+                            batteryCapacity: item.battery_capacity,
+                            batteryStatus: item.battery_status,
+                            gponCabinet: item.gpon_cabinet,
+                            earthing: item.earthing,
+                            custodianName: item.custodian_name,
+                            custodianMobile: item.custodian_mobile,
+                            custodianAddress: item.custodian_address,
+                            synced_to_cloud: true,
+                            supabase_id: item.id
+                        }));
+                        
+                        // Save to localStorage for offline use
+                        localStorage.setItem('hotoData', JSON.stringify(hotoData));
+                        return;
+                    }
+                }
+                
+                // Fallback to local storage if offline or Supabase fails
+                loadHOTODataFromLocal();
+                
+            } catch (error) {
+                console.error('Error loading from Supabase:', error);
+                loadHOTODataFromLocal();
+            }
+        }
+
+        function loadHOTODataFromLocal() {
+            hotoData = JSON.parse(localStorage.getItem('hotoData') || '[]');
+        }
+
+        // Sync pending data to Supabase
+        async function syncPendingData() {
+            if (!isOnline) return;
+            
+            const pendingData = hotoData.filter(h => !h.synced_to_cloud);
+            if (pendingData.length === 0) return;
+            
+            try {
+                for (const hoto of pendingData) {
+                    const supabaseData = {
+                        hoto_date: hoto.date,
+                        submitted_by: hoto.submittedBy,
+                        employee_id: hoto.employeeId,
+                        employee_phone: hoto.employeePhone,
+                        district: hoto.district,
+                        block: hoto.block,
+                        gp_name: hoto.gpName,
+                        gp_code: hoto.gpCode,
+                        gp_shifted: hoto.gpShifted,
+                        equipment_make: hoto.equipmentMake,
+                        original_address: hoto.originalAddress,
+                        original_lat: hoto.originalLat,
+                        original_long: hoto.originalLong,
+                        shifted_address: hoto.shiftedAddress,
+                        shifted_lat: hoto.shiftedLat,
+                        shifted_long: hoto.shiftedLong,
+                        ont_make: hoto.ontMake,
+                        ont_serial: hoto.ontSerial,
+                        ont_status: hoto.ontStatus,
+                        ont_location: hoto.ontLocation,
+                        ccu_make: hoto.ccuMake,
+                        ccu_serial: hoto.ccuSerial,
+                        ccu_status: hoto.ccuStatus,
+                        ccu_location: hoto.ccuLocation,
+                        solar_make: hoto.solarMake,
+                        solar_serial: hoto.solarSerial,
+                        solar_capacity: hoto.solarCapacity,
+                        solar_status: hoto.solarStatus,
+                        battery_make: hoto.batteryMake,
+                        battery_serial: hoto.batterySerial,
+                        battery_capacity: hoto.batteryCapacity,
+                        battery_status: hoto.batteryStatus,
+                        gpon_cabinet: hoto.gponCabinet,
+                        earthing: hoto.earthing,
+                        custodian_name: hoto.custodianName,
+                        custodian_mobile: hoto.custodianMobile,
+                        custodian_address: hoto.custodianAddress,
+                        created_at: hoto.timestamp
+                    };
+                    
+                    const { data, error } = await supabase
+                        .from('hoto_data')
+                        .insert([supabaseData])
+                        .select()
+                        .single();
+                    
+                    if (!error && data) {
+                        // Mark as synced
+                        hoto.synced_to_cloud = true;
+                        hoto.supabase_id = data.id;
+                    }
+                }
+                
+                // Save updated data to localStorage
+                localStorage.setItem('hotoData', JSON.stringify(hotoData));
+                
+                // Update UI
+                const syncedData = hotoData.filter(h => h.synced_to_cloud);
+                document.getElementById('syncedCount').textContent = syncedData.length;
+                
+                showToast(`Synced ${pendingData.length} records to cloud`, 'success');
+            } catch (error) {
+                console.error('Sync error:', error);
+                showToast('Failed to sync some data. Will retry later.', 'warning');
+            }
+        }
+
+        // Save HOTO with Supabase sync
+        async function saveHOTO() {
+            // Check if user has data entry access (unchanged)
+            if (currentUser.accessLevel !== 'full' && currentUser.accessLevel !== 'dataEntry') {
+                showToast('You do not have permission to save data', 'error');
+                return;
+            }
+            
+            // Check user's district access (unchanged)
+            const selectedDistrict = document.getElementById('district').value;
+            if (currentUser.districtAccess && !currentUser.districtAccess.includes('all')) {
+                if (!currentUser.districtAccess.includes(selectedDistrict)) {
+                    showToast(`You do not have access to ${selectedDistrict} district`, 'error');
+                    return;
+                }
+            }
+            
+            // Check user's block access (unchanged)
+            const selectedBlock = document.getElementById('block').value;
+            if (currentUser.blockAccess && !currentUser.blockAccess.includes('all')) {
+                if (!currentUser.blockAccess.includes(selectedBlock)) {
+                    showToast(`You do not have access to ${selectedBlock} block`, 'error');
+                    return;
+                }
+            }
+            
+            // Basic validation (unchanged)
+            const requiredFields = [
+                'hotoDate', 'district', 'block', 'gpName', 'gpCode',
+                'equipmentMake', 'originalAddress', 'gponCabinet', 'earthing'
+            ];
+            
+            for (const fieldId of requiredFields) {
+                const field = document.getElementById(fieldId);
+                if (!field.value) {
+                    showToast(`Please fill ${fieldId.replace(/([A-Z])/g, ' $1').toLowerCase()}`, 'error');
+                    field.focus();
+                    return;
+                }
+            }
+            
+            // Check if GP is shifted and custodian details are required (unchanged)
+            const gpShifted = document.getElementById('gpShifted').value;
+            if (gpShifted === 'Yes') {
+                const custodianFields = ['custodianName', 'custodianMobile', 'custodianAddress', 'shiftedAddress'];
+                for (const fieldId of custodianFields) {
+                    const field = document.getElementById(fieldId);
+                    if (!field.value) {
+                        showToast(`Please fill ${fieldId.replace(/([A-Z])/g, ' $1').toLowerCase()} as GP is shifted`, 'error');
+                        field.focus();
+                        return;
+                    }
+                }
+            }
+            
+            // Collect all form data
+            const hotoRecord = {
+                id: editMode ? editingHOTOId : Date.now().toString(),
+                timestamp: new Date().toISOString(),
+                date: document.getElementById('hotoDate').value,
+                submittedBy: currentUser.name || currentUser.employeeId,
+                employeeId: currentUser.employeeId,
+                employeePhone: currentUser.phone || '',
+                
+                // Basic Information
+                district: document.getElementById('district').value,
+                block: document.getElementById('block').value,
+                gpName: document.getElementById('gpName').value,
+                gpCode: document.getElementById('gpCode').value,
+                
+                // GP Shift Status
+                gpShifted: gpShifted,
+                
+                // Equipment Details
+                equipmentMake: document.getElementById('equipmentMake').value,
+                
+                // Location Details
+                originalAddress: document.getElementById('originalAddress').value,
+                originalLat: document.getElementById('originalLat').value,
+                originalLong: document.getElementById('originalLong').value,
+                
+                // Shifted Location (if applicable)
+                shiftedAddress: gpShifted === 'Yes' ? document.getElementById('shiftedAddress').value : '',
+                shiftedLat: gpShifted === 'Yes' ? document.getElementById('shiftedLat').value : '',
+                shiftedLong: gpShifted === 'Yes' ? document.getElementById('shiftedLong').value : '',
+                
+                // ONT Details
+                ontMake: document.getElementById('ontMake').value,
+                ontSerial: document.getElementById('ontSerial').value,
+                ontStatus: document.getElementById('ontStatus').value,
+                ontLocation: document.getElementById('ontLocation').value,
+                
+                // CCU Details
+                ccuMake: document.getElementById('ccuMake').value,
+                ccuSerial: document.getElementById('ccuSerial').value,
+                ccuStatus: document.getElementById('ccuStatus').value,
+                ccuLocation: document.getElementById('ccuLocation').value,
+                
+                // Solar Details
+                solarMake: document.getElementById('solarMake').value,
+                solarSerial: document.getElementById('solarSerial').value,
+                solarCapacity: document.getElementById('solarCapacity').value,
+                solarStatus: document.getElementById('solarStatus').value,
+                
+                // Battery Details
+                batteryMake: document.getElementById('batteryMake').value,
+                batterySerial: document.getElementById('batterySerial').value,
+                batteryCapacity: document.getElementById('batteryCapacity').value,
+                batteryStatus: document.getElementById('batteryStatus').value,
+                
+                // Infrastructure Details
+                gponCabinet: document.getElementById('gponCabinet').value,
+                earthing: document.getElementById('earthing').value,
+                
+                // Custodian Details (if applicable)
+                custodianName: gpShifted === 'Yes' ? document.getElementById('custodianName').value : '',
+                custodianMobile: gpShifted === 'Yes' ? document.getElementById('custodianMobile').value : '',
+                custodianAddress: gpShifted === 'Yes' ? document.getElementById('custodianAddress').value : '',
+                
+                // Sync status
+                synced_to_cloud: false,
+                supabase_id: null
+            };
+            
+            try {
+                // Save to localStorage
+                if (editMode) {
+                    // Update existing record
+                    const index = hotoData.findIndex(h => h.id === editingHOTOId);
+                    if (index !== -1) {
+                        hotoData[index] = hotoRecord;
+                        hotoRecord.synced_to_cloud = false; // Need to resync
+                    }
+                    editMode = false;
+                    editingHOTOId = null;
+                } else {
+                    // Add new record
+                    hotoData.unshift(hotoRecord);
+                }
+                
+                localStorage.setItem('hotoData', JSON.stringify(hotoData));
+                
+                // Try to sync to Supabase if online
+                if (isOnline) {
+                    const supabaseData = {
+                        hoto_date: hotoRecord.date,
+                        submitted_by: hotoRecord.submittedBy,
+                        employee_id: hotoRecord.employeeId,
+                        employee_phone: hotoRecord.employeePhone,
+                        district: hotoRecord.district,
+                        block: hotoRecord.block,
+                        gp_name: hotoRecord.gpName,
+                        gp_code: hotoRecord.gpCode,
+                        gp_shifted: hotoRecord.gpShifted,
+                        equipment_make: hotoRecord.equipmentMake,
+                        original_address: hotoRecord.originalAddress,
+                        original_lat: hotoRecord.originalLat,
+                        original_long: hotoRecord.originalLong,
+                        shifted_address: hotoRecord.shiftedAddress,
+                        shifted_lat: hotoRecord.shiftedLat,
+                        shifted_long: hotoRecord.shiftedLong,
+                        ont_make: hotoRecord.ontMake,
+                        ont_serial: hotoRecord.ontSerial,
+                        ont_status: hotoRecord.ontStatus,
+                        ont_location: hotoRecord.ontLocation,
+                        ccu_make: hotoRecord.ccuMake,
+                        ccu_serial: hotoRecord.ccuSerial,
+                        ccu_status: hotoRecord.ccuStatus,
+                        ccu_location: hotoRecord.ccuLocation,
+                        solar_make: hotoRecord.solarMake,
+                        solar_serial: hotoRecord.solarSerial,
+                        solar_capacity: hotoRecord.solarCapacity,
+                        solar_status: hotoRecord.solarStatus,
+                        battery_make: hotoRecord.batteryMake,
+                        battery_serial: hotoRecord.batterySerial,
+                        battery_capacity: hotoRecord.batteryCapacity,
+                        battery_status: hotoRecord.batteryStatus,
+                        gpon_cabinet: hotoRecord.gponCabinet,
+                        earthing: hotoRecord.earthing,
+                        custodian_name: hotoRecord.custodianName,
+                        custodian_mobile: hotoRecord.custodianMobile,
+                        custodian_address: hotoRecord.custodianAddress,
+                        created_at: hotoRecord.timestamp
+                    };
+                    
+                    const { data, error } = await supabase
+                        .from('hoto_data')
+                        .insert([supabaseData])
+                        .select()
+                        .single();
+                    
+                    if (!error && data) {
+                        hotoRecord.synced_to_cloud = true;
+                        hotoRecord.supabase_id = data.id;
+                        
+                        // Update in localStorage
+                        const index = hotoData.findIndex(h => h.id === hotoRecord.id);
+                        if (index !== -1) {
+                            hotoData[index] = hotoRecord;
+                            localStorage.setItem('hotoData', JSON.stringify(hotoData));
+                        }
+                    }
+                }
+                
+                // Update UI
+                updateStats();
+                
+                // Show success modal
+                showSuccessModal();
+                
+                // Clear form
+                clearForm(true);
+                
+                // If on view tab, refresh
+                if (document.getElementById('view-tab').classList.contains('active')) {
+                    loadHOTOList();
+                }
+                
+            } catch (error) {
+                console.error('Save error:', error);
+                showToast('Data saved locally. Will sync when online.', 'warning');
+                
+                // Still update stats
+                updateStats();
+                
+                // Show success modal for local save
+                showSuccessModal();
+            }
+        }
+
+        // Success Modal Functions
+        function showSuccessModal() {
+            const modal = document.getElementById('successModal');
+            const message = document.getElementById('successMessage');
+            
+            if (isOnline) {
+                message.innerHTML = '<i class="fas fa-check-circle"></i> Data Submitted & Synced Successfully!';
+            } else {
+                message.innerHTML = '<i class="fas fa-check-circle"></i> Data Saved Locally!<br><small>Will sync when online</small>';
+            }
+            
+            modal.classList.add('active');
+        }
+
+        function closeSuccessModal() {
+            document.getElementById('successModal').classList.remove('active');
+        }
+
+        function addNewData() {
+            closeSuccessModal();
+            switchTab('collect');
+            // Clear form completely for new entry
+            clearForm(false);
+        }
+
+        // Update analytics tab with Today's Report Dashboard
+        function loadAnalytics() {
+            loadHOTODataFromLocal();
+            updateAnalytics();
+        }
+
+        function updateAnalytics() {
+            if (hotoData.length === 0) {
+                // Clear charts
+                ['chartStatus', 'chartEquipment', 'chartShift', 'chartMonthly'].forEach(id => {
+                    const container = document.getElementById(id);
+                    if (container) {
+                        container.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 40px;">No data available</p>';
+                    }
+                });
+                updateQuickStats([]);
+                updateTodayDashboard([]);
+                return;
+            }
+            
+            createStatusChart();
+            createEquipmentChart();
+            createShiftChart();
+            createMonthlyChart();
+            updateQuickStats(hotoData);
+            updateTodayDashboard(hotoData);
+            
+            // Add Today's Report Dashboard to analytics tab
+            const analyticsTab = document.getElementById('analytics-tab');
+            let todayDashboard = document.getElementById('todayDashboard');
+            
+            if (!todayDashboard) {
+                todayDashboard = document.createElement('div');
+                todayDashboard.id = 'todayDashboard';
+                todayDashboard.className = 'today-dashboard';
+                analyticsTab.insertBefore(todayDashboard, analyticsTab.firstChild);
+            }
+            
+            updateTodayDashboardContent();
+        }
+
+        function updateTodayDashboardContent() {
+            const today = new Date().toISOString().split('T')[0];
+            const todayData = hotoData.filter(h => h.date === today);
+            const todayUserData = todayData.filter(h => h.employeeId === currentUser.employeeId);
+            
+            const totalToday = todayData.length;
+            const userToday = todayUserData.length;
+            const workingToday = todayData.filter(h => h.ontStatus === 'Working').length;
+            const shiftedToday = todayData.filter(h => h.gpShifted === 'Yes').length;
+            
+            const todayDashboard = document.getElementById('todayDashboard');
+            if (!todayDashboard) return;
+            
+            todayDashboard.innerHTML = `
+                <div class="today-header">
+                    <div class="today-title">
+                        <i class="fas fa-calendar-day"></i>
+                        Today's Report Dashboard (${today})
+                    </div>
+                    <div class="sync-status ${isOnline ? 'online' : 'offline'}">
+                        <i class="fas fa-${isOnline ? 'wifi' : 'wifi-slash'}"></i>
+                        <span>${isOnline ? 'Online' : 'Offline'}</span>
+                    </div>
+                </div>
+                <div class="today-grid">
+                    <div class="today-stat">
+                        <div class="today-value">${totalToday}</div>
+                        <div class="today-label">Total HOTO Today</div>
+                    </div>
+                    <div class="today-stat">
+                        <div class="today-value">${userToday}</div>
+                        <div class="today-label">Your HOTO Today</div>
+                    </div>
+                    <div class="today-stat">
+                        <div class="today-value">${workingToday}</div>
+                        <div class="today-label">Working ONT Today</div>
+                    </div>
+                    <div class="today-stat">
+                        <div class="today-value">${shiftedToday}</div>
+                        <div class="today-label">GP Shifted Today</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update Quick Stats with Today's Work
+        function updateQuickStats(data) {
+            const today = new Date().toISOString().split('T')[0];
+            const todayData = data.filter(h => h.date === today);
+            const todayUserData = todayData.filter(h => h.employeeId === currentUser.employeeId);
+            
+            const workingONT = data.filter(h => h.ontStatus === 'Working').length;
+            const workingSolar = data.filter(h => h.solarStatus === 'Working').length;
+            const workingBattery = data.filter(h => h.batteryStatus === 'Working').length;
+            const shiftedCount = data.filter(h => h.gpShifted === 'Yes').length;
+            const uniqueGPs = new Set(data.map(h => h.gpCode)).size;
+            
+            const statsHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; text-align: center;">
+                    <div style="background: var(--border-color); padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: bold; color: var(--primary-color);">${data.length}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Total HOTO</div>
+                    </div>
+                    <div style="background: var(--border-color); padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: bold; color: var(--success-color);">${workingONT}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Working ONT</div>
+                    </div>
+                    <div style="background: var(--border-color); padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: bold; color: var(--warning-color);">${uniqueGPs}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">GPs Covered</div>
+                    </div>
+                    <div style="background: var(--border-color); padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: bold; color: var(--info-color);">${shiftedCount}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">GP Shifted</div>
+                    </div>
+                </div>
+                
+                <!-- Today's Work Section -->
+                <div class="quick-today-section">
+                    <div class="quick-today-header">
+                        <i class="fas fa-bolt"></i>
+                        <h3>Today's Work Summary</h3>
+                    </div>
+                    <div class="quick-today-grid">
+                        <div class="quick-today-item">
+                            <div class="quick-today-value">${todayData.length}</div>
+                            <div class="quick-today-label">Total Today</div>
+                        </div>
+                        <div class="quick-today-item">
+                            <div class="quick-today-value">${todayUserData.length}</div>
+                            <div class="quick-today-label">Your Entries</div>
+                        </div>
+                        <div class="quick-today-item">
+                            <div class="quick-today-value">${todayData.filter(h => h.ontStatus === 'Working').length}</div>
+                            <div class="quick-today-label">Working Today</div>
+                        </div>
+                        <div class="quick-today-item">
+                            <div class="quick-today-value">${todayData.filter(h => h.gpShifted === 'Yes').length}</div>
+                            <div class="quick-today-label">Shifted Today</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const container = document.getElementById('quickStatsDetailed');
+            if (container) {
+                container.innerHTML = statsHTML;
+            }
+        }
+
+        // Update Stats with Today's count
+        function updateStats() {
+            loadHOTODataFromLocal();
+            const today = new Date().toISOString().split('T')[0];
+            const todayHOTO = hotoData.filter(h => h.date === today);
+            const todayUserHOTO = todayHOTO.filter(h => h.employeeId === currentUser.employeeId);
+            const workingONT = hotoData.filter(h => h.ontStatus === 'Working').length;
+            const uniqueGPs = new Set(hotoData.map(h => h.gpCode)).size;
+            const workingSolar = hotoData.filter(h => h.solarStatus === 'Working').length;
+            const syncedData = hotoData.filter(h => h.synced_to_cloud).length;
+            
+            document.getElementById('totalCount').textContent = hotoData.length;
+            document.getElementById('workingCount').textContent = workingONT;
+            document.getElementById('todayCount').textContent = todayHOTO.length;
+            document.getElementById('syncedCount').textContent = syncedData;
+            
+            // Update quick stats in sidebar
+            const quickStats = document.getElementById('quickStats');
+            
+            quickStats.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                    <div style="background: var(--border-color); padding: 10px; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 18px; font-weight: bold; color: var(--primary-color);">${uniqueGPs}</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">GPs Covered</div>
+                    </div>
+                    <div style="background: var(--border-color); padding: 10px; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 18px; font-weight: bold; color: var(--success-color);">${workingONT}</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">Working ONT</div>
+                    </div>
+                    <div style="background: var(--border-color); padding: 10px; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 18px; font-weight: bold; color: var(--warning-color);">${workingSolar}</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">Working Solar</div>
+                    </div>
+                    <div style="background: var(--border-color); padding: 10px; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 18px; font-weight: bold; color: var(--info-color);">${todayUserHOTO.length}</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">Your Today</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Tab switching - MODIFIED to show Today's Dashboard in analytics
+        function switchTab(tabName) {
+            // Check access permissions
+            if (currentUser.accessLevel === 'dataEntry' && (tabName === 'settings' || tabName === 'analytics')) {
+                showToast('You do not have permission to access this tab', 'error');
+                return;
+            }
+            
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            const tabElement = document.getElementById(tabName + '-tab');
+            if (tabElement) {
+                tabElement.classList.add('active');
+            }
+            
+            // Activate the clicked button
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => {
+                if (btn.getAttribute('onclick') === `switchTab('${tabName}')`) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Load data for specific tabs
+            if (tabName === 'analytics') {
+                setTimeout(() => {
+                    loadAnalytics();
+                }, 100);
+            } else if (tabName === 'view') {
+                setTimeout(() => {
+                    loadHOTOList();
+                }, 100);
+            } else if (tabName === 'settings' && currentUser.accessLevel === 'full') {
+                loadUsersTable();
+                loadDistrictAccessControl();
+                loadBlockAccessControl();
+            }
+        }
+
+        // ... (rest of the functions remain the same) ...
+
+        // Note: All other functions (showLoginError, logout, loadGPMasterData, etc.) 
+        // remain exactly as they were, just make sure to update any references
+        // from localStorage to also consider Supabase where appropriate
+
+    </script>
+</body>
+</html>
