@@ -1159,7 +1159,7 @@
     <div id="loginPage" class="login-container">
         <div class="login-header">
             <h1><i class="fas fa-network-wired"></i> GP HOTO System</h1>
-            <p>Default Login: 101214 / 101214</p>
+            <p>Default Login: admin / admin</p>
         </div>
         
         <div class="login-error" id="loginError">
@@ -1834,7 +1834,7 @@
                                 </div>
                             </div>
 
-                            <!-- User Management (101214 Only) -->
+                            <!-- User Management (admin Only) -->
                             <div class="settings-section" id="userManagementSection">
                                 <h3 class="section-title">
                                     <i class="fas fa-users-cog"></i> User Management
@@ -2166,7 +2166,7 @@
                             accessLevel: data.access_level,
                             districtAccess: data.district_access || [],
                             blockAccess: data.block_access || [],
-                            is101214: data.is_101214 || false
+                            isadmin: data.is_admin || false
                         };
                         
                         // Also check local storage for existing users
@@ -2185,25 +2185,25 @@
                 // Fallback to local authentication for offline or if Supabase fails
                 let users = JSON.parse(localStorage.getItem('users') || '{}');
                 
-                // Always accept 101214/101214
-                if (employeeId === '101214' && password === '101214') {
-                    if (!users['101214']) {
-                        // Create 101214 user
-                        users['101214'] = {
-                            employeeId: '101214',
-                            name: 'System 101214istrator',
-                            designation: '101214',
+                // Always accept admin/admin
+                if (employeeId === 'admin' && password === 'admin') {
+                    if (!users['admin']) {
+                        // Create admin user
+                        users['admin'] = {
+                            employeeId: 'admin',
+                            name: 'System administrator',
+                            designation: 'admin',
                             phone: '',
                             accessLevel: 'full',
                             createdAt: new Date().toISOString(),
-                            is101214: true,
+                            isadmin: true,
                             districtAccess: ['all'],
                             blockAccess: ['all']
                         };
                         localStorage.setItem('users', JSON.stringify(users));
                     }
                     
-                    currentUser = users['101214'];
+                    currentUser = users['admin'];
                     localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
                     await showMainApp();
                     return;
@@ -2919,7 +2919,7 @@
             // Set content
             noteContent.textContent = noteData.content;
             const date = new Date(noteData.createdAt);
-            noteDate.textContent = `Updated: ${date.toLocaleDateString()} by ${noteData.createdBy || '101214'}`;
+            noteDate.textContent = `Updated: ${date.toLocaleDateString()} by ${noteData.createdBy || 'admin'}`;
         }
 
         function dismissNote() {
@@ -3733,8 +3733,8 @@
             tableBody.innerHTML = '';
             
             Object.values(users).forEach(user => {
-                // Skip showing 101214 in the table if it's the system 101214
-                if (user.employeeId === '101214' && user.is101214) return;
+                // Skip showing admin in the table if it's the system admin
+                if (user.employeeId === 'admin' && user.isadmin) return;
                 
                 const districtAccess = user.districtAccess && user.districtAccess.includes('all') ? 
                     'All Districts' : 
@@ -3822,7 +3822,7 @@
                 districtAccess: selectedDistricts,
                 blockAccess: selectedBlocks,
                 createdAt: new Date().toISOString(),
-                is101214: false
+                isadmin: false
             };
             
             localStorage.setItem('users', JSON.stringify(users));
@@ -4476,4 +4476,5 @@
     </script>
 </body>
 </html>
+
 
