@@ -2991,12 +2991,10 @@
         // GP Master Data Management
         function loadGPMasterData() {
             gpMasterData = JSON.parse(localStorage.getItem('gpMasterData') || '[]');
-            // Add sample data if empty
+            // Add sample data if empty Amritsar
             if (gpMasterData.length === 0) {
                 gpMasterData = [
-                    { district: 'Amritsar', block: 'Ajnala', gpName: 'Sample GP', gpCode: 'AMR-AJN-001' },
-                    { district: 'Amritsar', block: 'Ajnala', gpName: 'Test GP', gpCode: 'AMR-AJN-002' },
-                    { district: 'Amritsar', block: 'Raja Sansi', gpName: 'Demo GP', gpCode: 'AMR-RJS-001' }
+                    }
                 ];
                 localStorage.setItem('gpMasterData', JSON.stringify(gpMasterData));
             }
@@ -4476,3 +4474,4 @@
     </script>
 </body>
 </html>
+
