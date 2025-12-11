@@ -2012,17 +2012,33 @@
 
     <script>
         // ============================================
-        // SUPABASE CONFIGURATION
+        // SUPABASE CONFIGURATION - REPLACE WITH YOUR CREDENTIALS
         // ============================================
-        // Supabase Configuration - Replace with your actual Supabase credentials
         const SUPABASE_URL = 'https://xpsvdiriwadnexrgzlma.supabase.co'; // Replace with your Supabase URL
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhwc3ZkaXJpd2FkbmV4cmd6bG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzODAwMzksImV4cCI6MjA4MDk1NjAzOX0.7oHVOwbKyy1Y1Ti00MBFJRkpDXE8LXEwnBUkdXo79ZI'; // Replace with your Supabase anon key
+
         
-        // Initialize Supabase
+        // Initialize Supabase with proper configuration for multi-device sync
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
                 persistSession: true,
-                autoRefreshToken: true
+                autoRefreshToken: true,
+                storage: window.localStorage,
+                detectSessionInUrl: true
+            },
+            realtime: {
+                params: {
+                    eventsPerSecond: 10
+                }
+            },
+            db: {
+                schema: 'public'
+            },
+            global: {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPABASE_ANON_KEY
+                }
             }
         });
 
@@ -2038,19 +2054,20 @@
         let editingHOTOId = null;
         let selectedExcelFile = null;
         let isOnline = navigator.onLine;
+        let realtimeSubscription = null;
 
         // ============================================
         // INITIALIZE APPLICATION
         // ============================================
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Application loaded');
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Application starting...');
             
-            // Set today's date in form
+            // Set today's date
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('hotoDate').value = today;
             
             // Initialize
-            initializeApp();
+            await initializeApp();
             
             // Network monitoring
             window.addEventListener('online', handleOnline);
@@ -2058,10 +2075,14 @@
             
             // Periodic sync check
             setInterval(checkSyncStatus, 30000);
+            
+            // Auto-sync every 2 minutes
+            setInterval(syncPendingData, 120000);
+            
+            console.log('✅ Application initialized');
         });
 
         async function initializeApp() {
-            console.log('Initializing app...');
             loadTheme();
             await checkLoginStatus();
         }
@@ -2082,19 +2103,59 @@
         }
 
         // ============================================
-        // AUTHENTICATION
+        // AUTHENTICATION - FIXED FOR MULTI-DEVICE
         // ============================================
         async function checkLoginStatus() {
-            const loggedInUser = localStorage.getItem('loggedInUser');
-            if (loggedInUser) {
-                try {
-                    currentUser = JSON.parse(loggedInUser);
-                    await showMainApp();
-                } catch (e) {
-                    console.error('Login error:', e);
+            try {
+                // First check Supabase session
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                
+                if (!sessionError && session) {
+                    // User has active Supabase session
+                    console.log('Supabase session found:', session.user.email);
+                    
+                    // Get user data from Supabase
+                    const { data: userData, error: userError } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('employee_id', session.user.email)
+                        .single();
+                    
+                    if (!userError && userData) {
+                        currentUser = {
+                            employeeId: userData.employee_id,
+                            name: userData.full_name,
+                            email: userData.email,
+                            designation: userData.designation,
+                            phone: userData.phone_number,
+                            accessLevel: userData.access_level,
+                            districtAccess: userData.district_access || [],
+                            blockAccess: userData.block_access || [],
+                            isAdmin: userData.is_admin || false,
+                            firstLogin: userData.first_login || false
+                        };
+                        
+                        localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
+                        await showMainApp();
+                        return;
+                    }
+                }
+                
+                // Fallback to local storage
+                const loggedInUser = localStorage.getItem('loggedInUser');
+                if (loggedInUser) {
+                    try {
+                        currentUser = JSON.parse(loggedInUser);
+                        await showMainApp();
+                    } catch (e) {
+                        console.error('Error parsing user:', e);
+                        showLoginPage();
+                    }
+                } else {
                     showLoginPage();
                 }
-            } else {
+            } catch (error) {
+                console.error('Login check error:', error);
                 showLoginPage();
             }
         }
@@ -2106,13 +2167,13 @@
         }
 
         async function showMainApp() {
-            console.log('Showing main app for user:', currentUser?.employeeId);
+            console.log('Showing main app for:', currentUser?.employeeId);
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
             await loadApplication();
         }
 
-        // Login form handler
+        // Login form handler - FIXED
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -2124,45 +2185,53 @@
                 return;
             }
             
-            console.log('Attempting login for:', employeeId);
+            console.log('Login attempt:', employeeId);
             
             try {
-                // Try Supabase login first
+                // Try Supabase authentication first
                 if (isOnline) {
-                    console.log('Trying Supabase login...');
-                    const { data, error } = await supabase
+                    console.log('Attempting Supabase login...');
+                    
+                    // Check if user exists in Supabase
+                    const { data: userData, error: userError } = await supabase
                         .from('users')
                         .select('*')
                         .eq('employee_id', employeeId)
                         .eq('password', password)
                         .single();
 
-                    if (!error && data) {
-                        console.log('Supabase login successful');
+                    if (!userError && userData) {
+                        console.log('✅ Supabase login successful');
+                        
                         currentUser = {
-                            employeeId: data.employee_id,
-                            name: data.full_name,
-                            email: data.email,
-                            designation: data.designation,
-                            phone: data.phone_number,
-                            accessLevel: data.access_level,
-                            districtAccess: data.district_access || [],
-                            blockAccess: data.block_access || [],
-                            isAdmin: data.is_admin || false,
-                            firstLogin: data.first_login || false
+                            employeeId: userData.employee_id,
+                            name: userData.full_name,
+                            email: userData.email,
+                            designation: userData.designation,
+                            phone: userData.phone_number,
+                            accessLevel: userData.access_level,
+                            districtAccess: userData.district_access || [],
+                            blockAccess: userData.block_access || [],
+                            isAdmin: userData.is_admin || false,
+                            firstLogin: userData.first_login || false
                         };
                         
+                        // Also update local storage
+                        let users = JSON.parse(localStorage.getItem('users') || '{}');
+                        users[employeeId] = currentUser;
+                        localStorage.setItem('users', JSON.stringify(users));
                         localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
+                        
                         await showMainApp();
                         return;
                     }
                 }
                 
-                // Fallback: Check local storage
-                console.log('Trying local login...');
+                // Fallback: Local authentication
+                console.log('Trying local authentication...');
                 let users = JSON.parse(localStorage.getItem('users') || '{}');
                 
-                // Default admin
+                // Default admin (always works)
                 if (employeeId === 'admin' && password === 'admin') {
                     if (!users['admin']) {
                         users['admin'] = {
@@ -2214,12 +2283,15 @@
             if (confirm('Are you sure you want to logout?')) {
                 localStorage.removeItem('loggedInUser');
                 currentUser = null;
+                if (realtimeSubscription) {
+                    supabase.removeSubscription(realtimeSubscription);
+                }
                 showLoginPage();
             }
         }
 
         // ============================================
-        // NETWORK STATUS
+        // NETWORK & SYNC STATUS - FIXED
         // ============================================
         function handleOnline() {
             isOnline = true;
@@ -2249,7 +2321,8 @@
 
         async function checkSyncStatus() {
             try {
-                const { data, error } = await supabase
+                // Quick ping to Supabase
+                const { error } = await supabase
                     .from('hoto_data')
                     .select('count')
                     .limit(1);
@@ -2268,7 +2341,52 @@
         }
 
         // ============================================
-        // APPLICATION LOADING
+        // REAL-TIME SYNC WITH SUPABASE - CRITICAL FIX
+        // ============================================
+        async function setupRealtimeSync() {
+            if (!isOnline || !currentUser) return;
+            
+            try {
+                // Remove existing subscription if any
+                if (realtimeSubscription) {
+                    supabase.removeSubscription(realtimeSubscription);
+                }
+                
+                // Subscribe to real-time changes
+                realtimeSubscription = supabase
+                    .channel('hoto-data-changes')
+                    .on('postgres_changes', 
+                        { 
+                            event: '*', 
+                            schema: 'public', 
+                            table: 'hoto_data' 
+                        }, 
+                        async (payload) => {
+                            console.log('Real-time update received:', payload);
+                            
+                            // Refresh data when changes occur
+                            await loadHOTODataFromSupabase();
+                            updateStats();
+                            
+                            // If on view tab, refresh the list
+                            if (document.getElementById('view-tab').classList.contains('active')) {
+                                loadHOTOList();
+                            }
+                            
+                            showToast('Data updated from another device', 'info');
+                        }
+                    )
+                    .subscribe();
+                    
+                console.log('✅ Real-time sync enabled');
+                
+            } catch (error) {
+                console.error('Real-time sync error:', error);
+            }
+        }
+
+        // ============================================
+        // APPLICATION LOADING - ENHANCED
         // ============================================
         async function loadApplication() {
             if (!currentUser) {
@@ -2322,6 +2440,9 @@
             updateStats();
             populateDistrictSelect();
             
+            // Setup real-time sync
+            await setupRealtimeSync();
+            
             // Initial sync
             if (isOnline) {
                 await syncPendingData();
@@ -2330,23 +2451,27 @@
             const syncedData = hotoData.filter(h => h.synced_to_cloud);
             document.getElementById('syncedCount').textContent = syncedData.length;
             
-            console.log('Application loaded successfully');
+            console.log('✅ Application loaded successfully');
         }
 
         // ============================================
-        // DATA LOADING
+        // DATA LOADING FROM SUPABASE - FIXED
         // ============================================
         async function loadHOTODataFromSupabase() {
             try {
                 if (isOnline) {
+                    console.log('Loading data from Supabase...');
+                    
                     const { data, error } = await supabase
                         .from('hoto_data')
                         .select('*')
                         .order('created_at', { ascending: false });
 
-                    if (!error && data && data.length > 0) {
-                        console.log('Loaded', data.length, 'records from Supabase');
-                        hotoData = data.map(item => ({
+                    if (!error && data) {
+                        console.log(`✅ Loaded ${data.length} records from Supabase`);
+                        
+                        // Transform Supabase data to local format
+                        const supabaseData = data.map(item => ({
                             id: item.id,
                             timestamp: item.created_at,
                             date: item.hoto_date,
@@ -2390,11 +2515,19 @@
                             supabase_id: item.id
                         }));
                         
+                        // Merge with local data (keep local unsynced records)
+                        const localData = JSON.parse(localStorage.getItem('hotoData') || '[]');
+                        const localUnsynced = localData.filter(item => !item.synced_to_cloud);
+                        
+                        hotoData = [...supabaseData, ...localUnsynced];
                         localStorage.setItem('hotoData', JSON.stringify(hotoData));
                         return;
+                    } else if (error) {
+                        console.error('Supabase load error:', error);
                     }
                 }
                 
+                // Fallback to local storage
                 loadHOTODataFromLocal();
                 
             } catch (error) {
@@ -2405,104 +2538,123 @@
 
         function loadHOTODataFromLocal() {
             hotoData = JSON.parse(localStorage.getItem('hotoData') || '[]');
-            console.log('Loaded', hotoData.length, 'records from local storage');
+            console.log(`📁 Loaded ${hotoData.length} records from local storage`);
         }
 
         // ============================================
-        // SYNC FUNCTIONS
+        // SYNC FUNCTIONS - FIXED FOR MULTI-DEVICE
         // ============================================
         async function syncPendingData() {
             if (!isOnline) {
-                console.log('Offline - cannot sync');
+                console.log('⚠️ Offline - cannot sync');
                 return;
             }
             
             const pendingData = hotoData.filter(h => !h.synced_to_cloud);
             if (pendingData.length === 0) {
-                console.log('No pending data to sync');
+                console.log('✅ No pending data to sync');
                 return;
             }
             
-            console.log('Syncing', pendingData.length, 'pending records');
+            console.log(`🔄 Syncing ${pendingData.length} pending records...`);
             
             try {
+                let syncedCount = 0;
+                let errorCount = 0;
+                
                 for (const hoto of pendingData) {
-                    const supabaseData = {
-                        hoto_date: hoto.date,
-                        submitted_by: hoto.submittedBy,
-                        employee_id: hoto.employeeId,
-                        employee_phone: hoto.employeePhone,
-                        district: hoto.district,
-                        block: hoto.block,
-                        gp_name: hoto.gpName,
-                        gp_code: hoto.gpCode,
-                        gp_shifted: hoto.gpShifted,
-                        equipment_make: hoto.equipmentMake,
-                        original_address: hoto.originalAddress,
-                        original_lat: hoto.originalLat,
-                        original_long: hoto.originalLong,
-                        shifted_address: hoto.shiftedAddress,
-                        shifted_lat: hoto.shiftedLat,
-                        shifted_long: hoto.shiftedLong,
-                        ont_make: hoto.ontMake,
-                        ont_serial: hoto.ontSerial,
-                        ont_status: hoto.ontStatus,
-                        ont_location: hoto.ontLocation,
-                        ccu_make: hoto.ccuMake,
-                        ccu_serial: hoto.ccuSerial,
-                        ccu_status: hoto.ccuStatus,
-                        ccu_location: hoto.ccuLocation,
-                        solar_make: hoto.solarMake,
-                        solar_serial: hoto.solarSerial,
-                        solar_capacity: hoto.solarCapacity,
-                        solar_status: hoto.solarStatus,
-                        battery_make: hoto.batteryMake,
-                        battery_serial: hoto.batterySerial,
-                        battery_capacity: hoto.batteryCapacity,
-                        battery_status: hoto.batteryStatus,
-                        gpon_cabinet: hoto.gponCabinet,
-                        earthing: hoto.earthing,
-                        custodian_name: hoto.custodianName,
-                        custodian_mobile: hoto.custodianMobile,
-                        custodian_address: hoto.custodianAddress,
-                        created_at: hoto.timestamp
-                    };
-                    
-                    let response;
-                    if (hoto.supabase_id) {
-                        response = await supabase
-                            .from('hoto_data')
-                            .update(supabaseData)
-                            .eq('id', hoto.supabase_id);
-                    } else {
-                        response = await supabase
-                            .from('hoto_data')
-                            .insert([supabaseData])
-                            .select()
-                            .single();
-                    }
-                    
-                    if (!response.error) {
-                        if (response.data) {
-                            hoto.supabase_id = response.data.id;
+                    try {
+                        const supabaseData = {
+                            hoto_date: hoto.date,
+                            submitted_by: hoto.submittedBy,
+                            employee_id: hoto.employeeId,
+                            employee_phone: hoto.employeePhone,
+                            district: hoto.district,
+                            block: hoto.block,
+                            gp_name: hoto.gpName,
+                            gp_code: hoto.gpCode,
+                            gp_shifted: hoto.gpShifted,
+                            equipment_make: hoto.equipmentMake,
+                            original_address: hoto.originalAddress,
+                            original_lat: hoto.originalLat,
+                            original_long: hoto.originalLong,
+                            shifted_address: hoto.shiftedAddress,
+                            shifted_lat: hoto.shiftedLat,
+                            shifted_long: hoto.shiftedLong,
+                            ont_make: hoto.ontMake,
+                            ont_serial: hoto.ontSerial,
+                            ont_status: hoto.ontStatus,
+                            ont_location: hoto.ontLocation,
+                            ccu_make: hoto.ccuMake,
+                            ccu_serial: hoto.ccuSerial,
+                            ccu_status: hoto.ccuStatus,
+                            ccu_location: hoto.ccuLocation,
+                            solar_make: hoto.solarMake,
+                            solar_serial: hoto.solarSerial,
+                            solar_capacity: hoto.solarCapacity,
+                            solar_status: hoto.solarStatus,
+                            battery_make: hoto.batteryMake,
+                            battery_serial: hoto.batterySerial,
+                            battery_capacity: hoto.batteryCapacity,
+                            battery_status: hoto.batteryStatus,
+                            gpon_cabinet: hoto.gponCabinet,
+                            earthing: hoto.earthing,
+                            custodian_name: hoto.custodianName,
+                            custodian_mobile: hoto.custodianMobile,
+                            custodian_address: hoto.custodianAddress,
+                            created_at: hoto.timestamp
+                        };
+                        
+                        let response;
+                        if (hoto.supabase_id) {
+                            // Update existing
+                            response = await supabase
+                                .from('hoto_data')
+                                .update(supabaseData)
+                                .eq('id', hoto.supabase_id);
+                        } else {
+                            // Insert new
+                            response = await supabase
+                                .from('hoto_data')
+                                .insert([supabaseData])
+                                .select()
+                                .single();
                         }
-                        hoto.synced_to_cloud = true;
-                        console.log('Synced record:', hoto.id);
-                    } else {
-                        console.error('Sync error:', response.error);
+                        
+                        if (!response.error) {
+                            if (response.data) {
+                                hoto.supabase_id = response.data.id;
+                            }
+                            hoto.synced_to_cloud = true;
+                            syncedCount++;
+                            console.log(`✅ Synced record: ${hoto.id}`);
+                        } else {
+                            console.error('❌ Sync error:', response.error);
+                            errorCount++;
+                        }
+                    } catch (recordError) {
+                        console.error('❌ Record sync error:', recordError);
+                        errorCount++;
                     }
                 }
                 
+                // Save updated data
                 localStorage.setItem('hotoData', JSON.stringify(hotoData));
                 
+                // Update UI
                 const syncedData = hotoData.filter(h => h.synced_to_cloud);
                 document.getElementById('syncedCount').textContent = syncedData.length;
                 
-                showToast(`Synced ${pendingData.length} records`, 'success');
+                if (syncedCount > 0) {
+                    showToast(`Synced ${syncedCount} records to cloud`, 'success');
+                }
+                if (errorCount > 0) {
+                    showToast(`${errorCount} records failed to sync`, 'warning');
+                }
                 
             } catch (error) {
-                console.error('Sync error:', error);
-                showToast('Failed to sync data', 'warning');
+                console.error('❌ Sync process error:', error);
+                showToast('Failed to sync data', 'error');
             }
         }
 
@@ -2559,10 +2711,10 @@
         }
 
         // ============================================
-        // DATA SAVING
+        // DATA SAVING - FIXED FOR MULTI-DEVICE
         // ============================================
         async function saveHOTO() {
-            console.log('Saving HOTO data...');
+            console.log('💾 Saving HOTO data...');
             
             // Validate required fields
             const requiredFields = [
@@ -2579,10 +2731,23 @@
                 }
             }
             
-            // Collect data
+            // Check if GP is shifted and validate custodian fields
             const gpShifted = document.getElementById('gpShifted').value;
+            if (gpShifted === 'Yes') {
+                const custodianFields = ['custodianName', 'custodianMobile', 'custodianAddress', 'shiftedAddress'];
+                for (const fieldId of custodianFields) {
+                    const field = document.getElementById(fieldId);
+                    if (!field.value) {
+                        showToast(`Please fill ${fieldId.replace(/([A-Z])/g, ' $1').toLowerCase()} as GP is shifted`, 'error');
+                        field.focus();
+                        return;
+                    }
+                }
+            }
+            
+            // Collect data
             const hotoRecord = {
-                id: editMode ? editingHOTOId : Date.now().toString(),
+                id: editMode ? editingHOTOId : 'local_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
                 timestamp: new Date().toISOString(),
                 date: document.getElementById('hotoDate').value,
                 submittedBy: currentUser.name || currentUser.employeeId,
@@ -2636,11 +2801,12 @@
             };
             
             try {
-                // Save locally
+                // Save locally first
                 if (editMode) {
                     const index = hotoData.findIndex(h => h.id === editingHOTOId);
                     if (index !== -1) {
                         hotoData[index] = hotoRecord;
+                        hotoRecord.synced_to_cloud = false; // Mark for re-sync
                     }
                     editMode = false;
                     editingHOTOId = null;
@@ -2649,9 +2815,11 @@
                 }
                 
                 localStorage.setItem('hotoData', JSON.stringify(hotoData));
+                console.log('✅ Saved locally');
                 
-                // Try to sync
+                // Try to sync immediately if online
                 if (isOnline) {
+                    console.log('🌐 Attempting immediate sync...');
                     const supabaseData = {
                         hoto_date: hotoRecord.date,
                         submitted_by: hotoRecord.submittedBy,
@@ -2703,11 +2871,16 @@
                         hotoRecord.synced_to_cloud = true;
                         hotoRecord.supabase_id = response.data.id;
                         
+                        // Update in local array
                         const index = hotoData.findIndex(h => h.id === hotoRecord.id);
                         if (index !== -1) {
                             hotoData[index] = hotoRecord;
                             localStorage.setItem('hotoData', JSON.stringify(hotoData));
                         }
+                        
+                        console.log('✅ Synced to Supabase immediately');
+                    } else {
+                        console.log('⚠️ Immediate sync failed, will retry later');
                     }
                 }
                 
@@ -2716,12 +2889,13 @@
                 showSuccessModal();
                 clearForm(true);
                 
+                // Refresh view tab if active
                 if (document.getElementById('view-tab').classList.contains('active')) {
                     loadHOTOList();
                 }
                 
             } catch (error) {
-                console.error('Save error:', error);
+                console.error('❌ Save error:', error);
                 showToast('Data saved locally. Will sync when online.', 'warning');
                 updateStats();
                 showSuccessModal();
@@ -2780,11 +2954,33 @@
         function loadGPMasterData() {
             gpMasterData = JSON.parse(localStorage.getItem('gpMasterData') || '[]');
             if (gpMasterData.length === 0) {
-                gpMasterData = [
-                    { district: 'Amritsar', block: 'Ajnala', gpName: 'Sample GP', gpCode: 'AMR-AJN-001' },
-                    { district: 'Amritsar', block: 'Ajnala', gpName: 'Test GP', gpCode: 'AMR-AJN-002' }
-                ];
-                localStorage.setItem('gpMasterData', JSON.stringify(gpMasterData));
+                // Load from Supabase if online
+                if (isOnline) {
+                    loadGPMasterFromSupabase();
+                } else {
+                    gpMasterData = [
+                        { district: 'Amritsar', block: 'Ajnala', gpName: 'Sample GP', gpCode: 'AMR-AJN-001' },
+                        { district: 'Amritsar', block: 'Ajnala', gpName: 'Test GP', gpCode: 'AMR-AJN-002' }
+                    ];
+                    localStorage.setItem('gpMasterData', JSON.stringify(gpMasterData));
+                }
+            }
+        }
+
+        async function loadGPMasterFromSupabase() {
+            try {
+                const { data, error } = await supabase
+                    .from('gp_master_data')
+                    .select('*')
+                    .order('district');
+                
+                if (!error && data) {
+                    gpMasterData = data;
+                    localStorage.setItem('gpMasterData', JSON.stringify(gpMasterData));
+                    console.log('✅ Loaded GP master data from Supabase');
+                }
+            } catch (error) {
+                console.error('Error loading GP master:', error);
             }
         }
 
@@ -2988,9 +3184,24 @@
             }, 100);
         }
 
-        function deleteHOTO(id) {
+        async function deleteHOTO(id) {
             if (!confirm('Delete this record?')) return;
             
+            const hoto = hotoData.find(h => h.id === id);
+            
+            // Delete from Supabase if synced
+            if (hoto && hoto.supabase_id && isOnline) {
+                try {
+                    await supabase
+                        .from('hoto_data')
+                        .delete()
+                        .eq('id', hoto.supabase_id);
+                } catch (error) {
+                    console.error('Error deleting from Supabase:', error);
+                }
+            }
+            
+            // Delete locally
             hotoData = hotoData.filter(h => h.id !== id);
             localStorage.setItem('hotoData', JSON.stringify(hotoData));
             loadHOTOList();
@@ -3127,7 +3338,7 @@
             });
         }
 
-        function addNewUser() {
+        async function addNewUser() {
             const employeeId = document.getElementById('newEmployeeId').value.trim();
             const name = document.getElementById('newUserName').value.trim();
             const email = document.getElementById('newUserEmail').value.trim();
@@ -3161,7 +3372,7 @@
                 return;
             }
             
-            // Add user
+            // Add user locally
             users[employeeId] = {
                 employeeId: employeeId,
                 name: name,
@@ -3177,6 +3388,29 @@
             };
             
             localStorage.setItem('users', JSON.stringify(users));
+            
+            // Also add to Supabase if online
+            if (isOnline) {
+                try {
+                    await supabase
+                        .from('users')
+                        .insert([{
+                            employee_id: employeeId,
+                            full_name: name,
+                            email: email,
+                            designation: designation,
+                            phone_number: phone,
+                            access_level: accessLevel,
+                            district_access: selectedDistricts,
+                            block_access: selectedBlocks,
+                            password: employeeId, // Default password
+                            first_login: true
+                        }]);
+                } catch (error) {
+                    console.error('Error adding user to Supabase:', error);
+                }
+            }
+            
             loadUsersTable();
             
             // Clear form
@@ -3191,10 +3425,10 @@
                 cb.checked = false;
             });
             
-            showToast('User added. They must change password on first login.', 'success');
+            showToast('User added. Password is Employee ID by default.', 'success');
         }
 
-        function deleteUser(employeeId) {
+        async function deleteUser(employeeId) {
             if (employeeId === currentUser.employeeId) {
                 showToast('Cannot delete your own account', 'error');
                 return;
@@ -3202,6 +3436,19 @@
             
             if (!confirm('Delete this user?')) return;
             
+            // Delete from Supabase if online
+            if (isOnline) {
+                try {
+                    await supabase
+                        .from('users')
+                        .delete()
+                        .eq('employee_id', employeeId);
+                } catch (error) {
+                    console.error('Error deleting from Supabase:', error);
+                }
+            }
+            
+            // Delete locally
             let users = JSON.parse(localStorage.getItem('users') || '{}');
             delete users[employeeId];
             localStorage.setItem('users', JSON.stringify(users));
@@ -3212,7 +3459,7 @@
         // ============================================
         // GP DATA MANAGEMENT
         // ============================================
-        function deleteMasterData() {
+        async function deleteMasterData() {
             if (!confirm('Delete ALL GP master data? This cannot be undone.')) return;
             
             if (currentUser.accessLevel !== 'full' && !currentUser.isAdmin) {
@@ -3220,6 +3467,19 @@
                 return;
             }
             
+            // Delete from Supabase if online
+            if (isOnline) {
+                try {
+                    await supabase
+                        .from('gp_master_data')
+                        .delete()
+                        .neq('id', 0);
+                } catch (error) {
+                    console.error('Error deleting from Supabase:', error);
+                }
+            }
+            
+            // Delete locally
             gpMasterData = [];
             localStorage.setItem('gpMasterData', JSON.stringify(gpMasterData));
             populateDistrictSelect();
@@ -3251,14 +3511,14 @@
             }
 
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
                     const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                     const jsonData = XLSX.utils.sheet_to_json(firstSheet);
                     
-                    importGPData(jsonData);
+                    await importGPData(jsonData);
                     
                     document.getElementById('excelFile').value = '';
                     document.getElementById('selectedFileName').textContent = '';
@@ -3271,13 +3531,14 @@
             reader.readAsArrayBuffer(selectedExcelFile);
         }
 
-        function importGPData(data) {
+        async function importGPData(data) {
             if (!data || data.length === 0) {
                 showToast('No data found', 'error');
                 return;
             }
             
             let importedCount = 0;
+            let supabaseImports = [];
             
             data.forEach((row, index) => {
                 const district = row.District || row.district;
@@ -3289,18 +3550,34 @@
                     const exists = gpMasterData.some(gp => gp.gpCode === gpCode);
                     
                     if (!exists) {
-                        gpMasterData.push({
+                        const gpRecord = {
                             district: district,
                             block: block || '',
                             gpName: gpName,
                             gpCode: gpCode
-                        });
+                        };
+                        
+                        gpMasterData.push(gpRecord);
+                        supabaseImports.push(gpRecord);
                         importedCount++;
                     }
                 }
             });
             
+            // Save locally
             localStorage.setItem('gpMasterData', JSON.stringify(gpMasterData));
+            
+            // Save to Supabase if online
+            if (isOnline && supabaseImports.length > 0) {
+                try {
+                    await supabase
+                        .from('gp_master_data')
+                        .insert(supabaseImports);
+                } catch (error) {
+                    console.error('Error importing to Supabase:', error);
+                }
+            }
+            
             populateDistrictSelect();
             loadDistrictAccessControl();
             loadBlockAccessControl();
@@ -3501,9 +3778,8 @@
         // ============================================
         // INITIALIZE ON LOAD
         // ============================================
-        console.log('Script loaded successfully');
-        // Application will initialize via DOMContentLoaded event
-
+        console.log('🚀 GP HOTO System loaded');
+        
     </script>
 </body>
 </html>
