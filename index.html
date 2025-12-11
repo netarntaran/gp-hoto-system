@@ -1928,6 +1928,40 @@
                                 </div>
                             </div>
                             
+                            <!-- GP Selection Settings -->
+                            <div class="settings-section">
+                                <h3 class="section-title">
+                                    <i class="fas fa-map-marker-alt"></i> GP Selection Settings
+                                </h3>
+                                
+                                <div class="settings-card">
+                                    <h4>GP Tracking & Management</h4>
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <input type="checkbox" id="hideSelectedGPs" onclick="toggleHideSelectedGPs()">
+                                            Hide already selected GPs in dropdown
+                                        </label>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <input type="checkbox" id="autoClearGP" onclick="toggleAutoClearGP()">
+                                            Auto-clear GP selection after form submission
+                                        </label>
+                                    </div>
+                                    <div style="margin-top: 20px;">
+                                        <button class="btn btn-warning" onclick="clearSelectedGPs()">
+                                            <i class="fas fa-eraser"></i> Clear GP Selection History
+                                        </button>
+                                        <button class="btn btn-info" onclick="showSelectedGPs()" style="margin-left: 10px;">
+                                            <i class="fas fa-list"></i> View Selected GPs
+                                        </button>
+                                        <button class="btn btn-danger" onclick="removeDummyData()" style="margin-left: 10px;">
+                                            <i class="fas fa-trash"></i> Remove Dummy Data
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <!-- Theme Settings -->
                             <div class="settings-section">
                                 <h3 class="section-title">
@@ -1982,10 +2016,10 @@
                                     </div>
                                     
                                     <div class="settings-card">
-                                        <h4>Clear All Data</h4>
-                                        <p style="color: var(--text-secondary); margin-bottom: 15px;">Warning: This cannot be undone</p>
-                                        <button class="btn btn-danger" onclick="clearAllData()" style="width: 100%;">
-                                            <i class="fas fa-trash"></i> Clear All Data
+                                        <h4>Data Cleanup</h4>
+                                        <p style="color: var(--text-secondary); margin-bottom: 15px;">Remove sample/test data</p>
+                                        <button class="btn btn-danger" onclick="cleanupData()" style="width: 100%;">
+                                            <i class="fas fa-broom"></i> Cleanup Data
                                         </button>
                                     </div>
                                 </div>
@@ -2012,13 +2046,12 @@
 
     <script>
         // ============================================
-        // SUPABASE CONFIGURATION - REPLACE WITH YOUR CREDENTIALS
+        // SUPABASE CONFIGURATION
         // ============================================
         const SUPABASE_URL = 'https://xpsvdiriwadnexrgzlma.supabase.co'; // Replace with your Supabase URL
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhwc3ZkaXJpd2FkbmV4cmd6bG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzODAwMzksImV4cCI6MjA4MDk1NjAzOX0.7oHVOwbKyy1Y1Ti00MBFJRkpDXE8LXEwnBUkdXo79ZI'; // Replace with your Supabase anon key
 
         
-        // Initialize Supabase with proper configuration for multi-device sync
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
                 persistSession: true,
@@ -2055,6 +2088,7 @@
         let selectedExcelFile = null;
         let isOnline = navigator.onLine;
         let realtimeSubscription = null;
+        let selectedGPs = JSON.parse(localStorage.getItem('selectedGPs') || '{}');
 
         // ============================================
         // INITIALIZE APPLICATION
@@ -2078,6 +2112,13 @@
             
             // Auto-sync every 2 minutes
             setInterval(syncPendingData, 120000);
+            
+            // Load quick stats initially
+            setTimeout(() => {
+                if (currentUser) {
+                    loadAnalytics();
+                }
+            }, 2000);
             
             console.log('✅ Application initialized');
         });
@@ -2103,18 +2144,15 @@
         }
 
         // ============================================
-        // AUTHENTICATION - FIXED FOR MULTI-DEVICE
+        // AUTHENTICATION - FIXED
         // ============================================
         async function checkLoginStatus() {
             try {
-                // First check Supabase session
                 const { data: { session }, error: sessionError } = await supabase.auth.getSession();
                 
                 if (!sessionError && session) {
-                    // User has active Supabase session
                     console.log('Supabase session found:', session.user.email);
                     
-                    // Get user data from Supabase
                     const { data: userData, error: userError } = await supabase
                         .from('users')
                         .select('*')
@@ -2141,7 +2179,6 @@
                     }
                 }
                 
-                // Fallback to local storage
                 const loggedInUser = localStorage.getItem('loggedInUser');
                 if (loggedInUser) {
                     try {
@@ -2173,7 +2210,7 @@
             await loadApplication();
         }
 
-        // Login form handler - FIXED
+        // Login form handler
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -2188,11 +2225,9 @@
             console.log('Login attempt:', employeeId);
             
             try {
-                // Try Supabase authentication first
                 if (isOnline) {
                     console.log('Attempting Supabase login...');
                     
-                    // Check if user exists in Supabase
                     const { data: userData, error: userError } = await supabase
                         .from('users')
                         .select('*')
@@ -2216,7 +2251,6 @@
                             firstLogin: userData.first_login || false
                         };
                         
-                        // Also update local storage
                         let users = JSON.parse(localStorage.getItem('users') || '{}');
                         users[employeeId] = currentUser;
                         localStorage.setItem('users', JSON.stringify(users));
@@ -2227,11 +2261,9 @@
                     }
                 }
                 
-                // Fallback: Local authentication
                 console.log('Trying local authentication...');
                 let users = JSON.parse(localStorage.getItem('users') || '{}');
                 
-                // Default admin (always works)
                 if (employeeId === 'admin' && password === 'admin') {
                     if (!users['admin']) {
                         users['admin'] = {
@@ -2255,7 +2287,6 @@
                     return;
                 }
                 
-                // Other users
                 if (users[employeeId] && users[employeeId].employeeId === password) {
                     currentUser = users[employeeId];
                     localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
@@ -2279,19 +2310,35 @@
             }, 3000);
         }
 
-        function logout() {
+        async function logout() {
             if (confirm('Are you sure you want to logout?')) {
+                try {
+                    const { error } = await supabase.auth.signOut();
+                    if (error) console.error('Supabase logout error:', error);
+                } catch (e) {
+                    console.error('Logout error:', e);
+                }
+                
                 localStorage.removeItem('loggedInUser');
-                currentUser = null;
+                localStorage.removeItem('selectedGPs');
+                
                 if (realtimeSubscription) {
                     supabase.removeSubscription(realtimeSubscription);
                 }
+                
+                sessionStorage.clear();
+                currentUser = null;
+                
                 showLoginPage();
+                
+                setTimeout(() => {
+                    window.location.reload();
+                }, 100);
             }
         }
 
         // ============================================
-        // NETWORK & SYNC STATUS - FIXED
+        // NETWORK & SYNC STATUS
         // ============================================
         function handleOnline() {
             isOnline = true;
@@ -2321,7 +2368,6 @@
 
         async function checkSyncStatus() {
             try {
-                // Quick ping to Supabase
                 const { error } = await supabase
                     .from('hoto_data')
                     .select('count')
@@ -2340,19 +2386,14 @@
             }
         }
 
-        // ============================================
-        // REAL-TIME SYNC WITH SUPABASE - CRITICAL FIX
-        // ============================================
         async function setupRealtimeSync() {
             if (!isOnline || !currentUser) return;
             
             try {
-                // Remove existing subscription if any
                 if (realtimeSubscription) {
                     supabase.removeSubscription(realtimeSubscription);
                 }
                 
-                // Subscribe to real-time changes
                 realtimeSubscription = supabase
                     .channel('hoto-data-changes')
                     .on('postgres_changes', 
@@ -2363,12 +2404,9 @@
                         }, 
                         async (payload) => {
                             console.log('Real-time update received:', payload);
-                            
-                            // Refresh data when changes occur
                             await loadHOTODataFromSupabase();
                             updateStats();
                             
-                            // If on view tab, refresh the list
                             if (document.getElementById('view-tab').classList.contains('active')) {
                                 loadHOTOList();
                             }
@@ -2440,6 +2478,9 @@
             updateStats();
             populateDistrictSelect();
             
+            // Load GP selection settings
+            loadGPSelectionSettings();
+            
             // Setup real-time sync
             await setupRealtimeSync();
             
@@ -2455,7 +2496,69 @@
         }
 
         // ============================================
-        // DATA LOADING FROM SUPABASE - FIXED
+        // GP SELECTION TRACKING FUNCTIONS
+        // ============================================
+        function loadGPSelectionSettings() {
+            const hideSelectedGPs = document.getElementById('hideSelectedGPs');
+            const autoClearGP = document.getElementById('autoClearGP');
+            
+            if (hideSelectedGPs) {
+                hideSelectedGPs.checked = localStorage.getItem('hideSelectedGPs') === 'true';
+            }
+            
+            if (autoClearGP) {
+                autoClearGP.checked = localStorage.getItem('autoClearGP') === 'true';
+            }
+        }
+
+        function toggleHideSelectedGPs() {
+            const hideSelected = document.getElementById('hideSelectedGPs').checked;
+            localStorage.setItem('hideSelectedGPs', hideSelected);
+            showToast(`Hide selected GPs: ${hideSelected ? 'Enabled' : 'Disabled'}`, 'info');
+            
+            // Refresh GP dropdown if on collect tab
+            if (document.getElementById('collect-tab').classList.contains('active')) {
+                loadGPs();
+            }
+        }
+
+        function toggleAutoClearGP() {
+            const autoClear = document.getElementById('autoClearGP').checked;
+            localStorage.setItem('autoClearGP', autoClear);
+            showToast(`Auto-clear GP: ${autoClear ? 'Enabled' : 'Disabled'}`, 'info');
+        }
+
+        function clearSelectedGPs() {
+            if (confirm('Clear all GP selection history? This will reset the tracking of selected GPs.')) {
+                selectedGPs = {};
+                localStorage.removeItem('selectedGPs');
+                showToast('GP selection history cleared', 'success');
+                
+                if (document.getElementById('collect-tab').classList.contains('active')) {
+                    loadGPs();
+                }
+            }
+        }
+
+        function showSelectedGPs() {
+            const count = Object.keys(selectedGPs).length;
+            if (count === 0) {
+                alert('No GPs have been selected yet.');
+                return;
+            }
+            
+            let message = `Total GPs selected: ${count}\n\nSelected GPs:\n`;
+            Object.keys(selectedGPs).forEach((key, index) => {
+                const [district, block, gpCode] = key.split('_');
+                const date = new Date(selectedGPs[key].date).toLocaleDateString();
+                message += `${index + 1}. ${district} - ${block} - ${gpCode} (${date})\n`;
+            });
+            
+            alert(message);
+        }
+
+        // ============================================
+        // DATA LOADING FUNCTIONS
         // ============================================
         async function loadHOTODataFromSupabase() {
             try {
@@ -2470,7 +2573,6 @@
                     if (!error && data) {
                         console.log(`✅ Loaded ${data.length} records from Supabase`);
                         
-                        // Transform Supabase data to local format
                         const supabaseData = data.map(item => ({
                             id: item.id,
                             timestamp: item.created_at,
@@ -2515,7 +2617,6 @@
                             supabase_id: item.id
                         }));
                         
-                        // Merge with local data (keep local unsynced records)
                         const localData = JSON.parse(localStorage.getItem('hotoData') || '[]');
                         const localUnsynced = localData.filter(item => !item.synced_to_cloud);
                         
@@ -2527,7 +2628,6 @@
                     }
                 }
                 
-                // Fallback to local storage
                 loadHOTODataFromLocal();
                 
             } catch (error) {
@@ -2542,7 +2642,7 @@
         }
 
         // ============================================
-        // SYNC FUNCTIONS - FIXED FOR MULTI-DEVICE
+        // SYNC FUNCTIONS
         // ============================================
         async function syncPendingData() {
             if (!isOnline) {
@@ -2607,13 +2707,11 @@
                         
                         let response;
                         if (hoto.supabase_id) {
-                            // Update existing
                             response = await supabase
                                 .from('hoto_data')
                                 .update(supabaseData)
                                 .eq('id', hoto.supabase_id);
                         } else {
-                            // Insert new
                             response = await supabase
                                 .from('hoto_data')
                                 .insert([supabaseData])
@@ -2638,10 +2736,8 @@
                     }
                 }
                 
-                // Save updated data
                 localStorage.setItem('hotoData', JSON.stringify(hotoData));
                 
-                // Update UI
                 const syncedData = hotoData.filter(h => h.synced_to_cloud);
                 document.getElementById('syncedCount').textContent = syncedData.length;
                 
@@ -2711,258 +2807,17 @@
         }
 
         // ============================================
-        // DATA SAVING - FIXED FOR MULTI-DEVICE
-        // ============================================
-        async function saveHOTO() {
-            console.log('💾 Saving HOTO data...');
-            
-            // Validate required fields
-            const requiredFields = [
-                'hotoDate', 'district', 'block', 'gpName', 'gpCode',
-                'equipmentMake', 'originalAddress', 'gponCabinet', 'earthing'
-            ];
-            
-            for (const fieldId of requiredFields) {
-                const field = document.getElementById(fieldId);
-                if (!field.value) {
-                    showToast(`Please fill ${fieldId.replace(/([A-Z])/g, ' $1').toLowerCase()}`, 'error');
-                    field.focus();
-                    return;
-                }
-            }
-            
-            // Check if GP is shifted and validate custodian fields
-            const gpShifted = document.getElementById('gpShifted').value;
-            if (gpShifted === 'Yes') {
-                const custodianFields = ['custodianName', 'custodianMobile', 'custodianAddress', 'shiftedAddress'];
-                for (const fieldId of custodianFields) {
-                    const field = document.getElementById(fieldId);
-                    if (!field.value) {
-                        showToast(`Please fill ${fieldId.replace(/([A-Z])/g, ' $1').toLowerCase()} as GP is shifted`, 'error');
-                        field.focus();
-                        return;
-                    }
-                }
-            }
-            
-            // Collect data
-            const hotoRecord = {
-                id: editMode ? editingHOTOId : 'local_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-                timestamp: new Date().toISOString(),
-                date: document.getElementById('hotoDate').value,
-                submittedBy: currentUser.name || currentUser.employeeId,
-                employeeId: currentUser.employeeId,
-                employeePhone: currentUser.phone || '',
-                
-                district: document.getElementById('district').value,
-                block: document.getElementById('block').value,
-                gpName: document.getElementById('gpName').value,
-                gpCode: document.getElementById('gpCode').value,
-                gpShifted: gpShifted,
-                
-                equipmentMake: document.getElementById('equipmentMake').value,
-                originalAddress: document.getElementById('originalAddress').value,
-                originalLat: document.getElementById('originalLat').value,
-                originalLong: document.getElementById('originalLong').value,
-                
-                shiftedAddress: gpShifted === 'Yes' ? document.getElementById('shiftedAddress').value : '',
-                shiftedLat: gpShifted === 'Yes' ? document.getElementById('shiftedLat').value : '',
-                shiftedLong: gpShifted === 'Yes' ? document.getElementById('shiftedLong').value : '',
-                
-                ontMake: document.getElementById('ontMake').value,
-                ontSerial: document.getElementById('ontSerial').value,
-                ontStatus: document.getElementById('ontStatus').value,
-                ontLocation: document.getElementById('ontLocation').value,
-                
-                ccuMake: document.getElementById('ccuMake').value,
-                ccuSerial: document.getElementById('ccuSerial').value,
-                ccuStatus: document.getElementById('ccuStatus').value,
-                ccuLocation: document.getElementById('ccuLocation').value,
-                
-                solarMake: document.getElementById('solarMake').value,
-                solarSerial: document.getElementById('solarSerial').value,
-                solarCapacity: document.getElementById('solarCapacity').value,
-                solarStatus: document.getElementById('solarStatus').value,
-                
-                batteryMake: document.getElementById('batteryMake').value,
-                batterySerial: document.getElementById('batterySerial').value,
-                batteryCapacity: document.getElementById('batteryCapacity').value,
-                batteryStatus: document.getElementById('batteryStatus').value,
-                
-                gponCabinet: document.getElementById('gponCabinet').value,
-                earthing: document.getElementById('earthing').value,
-                
-                custodianName: gpShifted === 'Yes' ? document.getElementById('custodianName').value : '',
-                custodianMobile: gpShifted === 'Yes' ? document.getElementById('custodianMobile').value : '',
-                custodianAddress: gpShifted === 'Yes' ? document.getElementById('custodianAddress').value : '',
-                
-                synced_to_cloud: false,
-                supabase_id: null
-            };
-            
-            try {
-                // Save locally first
-                if (editMode) {
-                    const index = hotoData.findIndex(h => h.id === editingHOTOId);
-                    if (index !== -1) {
-                        hotoData[index] = hotoRecord;
-                        hotoRecord.synced_to_cloud = false; // Mark for re-sync
-                    }
-                    editMode = false;
-                    editingHOTOId = null;
-                } else {
-                    hotoData.unshift(hotoRecord);
-                }
-                
-                localStorage.setItem('hotoData', JSON.stringify(hotoData));
-                console.log('✅ Saved locally');
-                
-                // Try to sync immediately if online
-                if (isOnline) {
-                    console.log('🌐 Attempting immediate sync...');
-                    const supabaseData = {
-                        hoto_date: hotoRecord.date,
-                        submitted_by: hotoRecord.submittedBy,
-                        employee_id: hotoRecord.employeeId,
-                        employee_phone: hotoRecord.employeePhone,
-                        district: hotoRecord.district,
-                        block: hotoRecord.block,
-                        gp_name: hotoRecord.gpName,
-                        gp_code: hotoRecord.gpCode,
-                        gp_shifted: hotoRecord.gpShifted,
-                        equipment_make: hotoRecord.equipmentMake,
-                        original_address: hotoRecord.originalAddress,
-                        original_lat: hotoRecord.originalLat,
-                        original_long: hotoRecord.originalLong,
-                        shifted_address: hotoRecord.shiftedAddress,
-                        shifted_lat: hotoRecord.shiftedLat,
-                        shifted_long: hotoRecord.shiftedLong,
-                        ont_make: hotoRecord.ontMake,
-                        ont_serial: hotoRecord.ontSerial,
-                        ont_status: hotoRecord.ontStatus,
-                        ont_location: hotoRecord.ontLocation,
-                        ccu_make: hotoRecord.ccuMake,
-                        ccu_serial: hotoRecord.ccuSerial,
-                        ccu_status: hotoRecord.ccuStatus,
-                        ccu_location: hotoRecord.ccuLocation,
-                        solar_make: hotoRecord.solarMake,
-                        solar_serial: hotoRecord.solarSerial,
-                        solar_capacity: hotoRecord.solarCapacity,
-                        solar_status: hotoRecord.solarStatus,
-                        battery_make: hotoRecord.batteryMake,
-                        battery_serial: hotoRecord.batterySerial,
-                        battery_capacity: hotoRecord.batteryCapacity,
-                        battery_status: hotoRecord.batteryStatus,
-                        gpon_cabinet: hotoRecord.gponCabinet,
-                        earthing: hotoRecord.earthing,
-                        custodian_name: hotoRecord.custodianName,
-                        custodian_mobile: hotoRecord.custodianMobile,
-                        custodian_address: hotoRecord.custodianAddress,
-                        created_at: hotoRecord.timestamp
-                    };
-                    
-                    const response = await supabase
-                        .from('hoto_data')
-                        .insert([supabaseData])
-                        .select()
-                        .single();
-                    
-                    if (!response.error && response.data) {
-                        hotoRecord.synced_to_cloud = true;
-                        hotoRecord.supabase_id = response.data.id;
-                        
-                        // Update in local array
-                        const index = hotoData.findIndex(h => h.id === hotoRecord.id);
-                        if (index !== -1) {
-                            hotoData[index] = hotoRecord;
-                            localStorage.setItem('hotoData', JSON.stringify(hotoData));
-                        }
-                        
-                        console.log('✅ Synced to Supabase immediately');
-                    } else {
-                        console.log('⚠️ Immediate sync failed, will retry later');
-                    }
-                }
-                
-                // Update UI
-                updateStats();
-                showSuccessModal();
-                clearForm(true);
-                
-                // Refresh view tab if active
-                if (document.getElementById('view-tab').classList.contains('active')) {
-                    loadHOTOList();
-                }
-                
-            } catch (error) {
-                console.error('❌ Save error:', error);
-                showToast('Data saved locally. Will sync when online.', 'warning');
-                updateStats();
-                showSuccessModal();
-            }
-        }
-
-        function clearForm(keepSelection = false) {
-            if (!keepSelection) {
-                document.getElementById('district').selectedIndex = 0;
-                document.getElementById('block').selectedIndex = 0;
-                document.getElementById('block').disabled = true;
-                document.getElementById('gpName').selectedIndex = 0;
-                document.getElementById('gpName').disabled = true;
-                document.getElementById('gpCode').value = '';
-            }
-            
-            // Clear other fields
-            const fieldsToClear = [
-                'originalAddress', 'originalLat', 'originalLong',
-                'shiftedAddress', 'shiftedLat', 'shiftedLong',
-                'ontMake', 'ontSerial', 'ontStatus', 'ontLocation',
-                'ccuMake', 'ccuSerial', 'ccuStatus', 'ccuLocation',
-                'solarMake', 'solarSerial', 'solarCapacity', 'solarStatus',
-                'batteryMake', 'batterySerial', 'batteryCapacity', 'batteryStatus',
-                'custodianName', 'custodianMobile', 'custodianAddress'
-            ];
-            
-            fieldsToClear.forEach(id => {
-                const field = document.getElementById(id);
-                if (field) field.value = '';
-            });
-            
-            // Reset selects
-            ['equipmentMake', 'gponCabinet', 'earthing'].forEach(id => {
-                const select = document.getElementById(id);
-                if (select) select.selectedIndex = 0;
-            });
-            
-            // Reset GP shift
-            setGPShift(false);
-            
-            // Reset edit mode
-            editMode = false;
-            editingHOTOId = null;
-            
-            // Set today's date
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('hotoDate').value = today;
-            
-            showToast('Form cleared', 'warning');
-        }
-
-        // ============================================
         // GP MASTER DATA
         // ============================================
         function loadGPMasterData() {
             gpMasterData = JSON.parse(localStorage.getItem('gpMasterData') || '[]');
+            
+            // REMOVED DUMMY DATA - Only load from Supabase or empty
             if (gpMasterData.length === 0) {
-                // Load from Supabase if online
                 if (isOnline) {
                     loadGPMasterFromSupabase();
                 } else {
-                    gpMasterData = [
-                        { district: 'Amritsar', block: 'Ajnala', gpName: 'Sample GP', gpCode: 'AMR-AJN-001' },
-                        { district: 'Amritsar', block: 'Ajnala', gpName: 'Test GP', gpCode: 'AMR-AJN-002' }
-                    ];
-                    localStorage.setItem('gpMasterData', JSON.stringify(gpMasterData));
+                    showToast('No GP data found. Please import GP master data.', 'warning');
                 }
             }
         }
@@ -3018,7 +2873,6 @@
             });
             blockSelect.disabled = !district;
             
-            // Clear GP
             document.getElementById('gpName').innerHTML = '<option value="">Select Gram Panchayat</option>';
             document.getElementById('gpName').disabled = true;
             document.getElementById('gpCode').value = '';
@@ -3027,14 +2881,27 @@
         function loadGPs() {
             const district = document.getElementById('district').value;
             const block = document.getElementById('block').value;
-            const gps = gpMasterData.filter(item => item.district === district && item.block === block);
+            
+            let gps = gpMasterData.filter(item => 
+                item.district === district && 
+                item.block === block
+            );
+            
+            // Filter out already selected GPs if enabled
+            const hideSelected = localStorage.getItem('hideSelectedGPs') === 'true';
+            if (hideSelected) {
+                gps = gps.filter(gp => !selectedGPs[`${district}_${block}_${gp.gpCode}`]);
+            }
             
             const gpSelect = document.getElementById('gpName');
             gpSelect.innerHTML = '<option value="">Select Gram Panchayat</option>';
+            
             gps.forEach(gp => {
-                gpSelect.innerHTML += `<option value="${gp.gpName}" data-code="${gp.gpCode}">${gp.gpName}</option>`;
+                const isSelected = selectedGPs[`${district}_${block}_${gp.gpCode}`];
+                gpSelect.innerHTML += `<option value="${gp.gpName}" data-code="${gp.gpCode}">${gp.gpName}${isSelected ? ' ✓' : ''}</option>`;
             });
-            gpSelect.disabled = !block;
+            
+            gpSelect.disabled = !block || gps.length === 0;
             
             // Populate filter
             ['filterGP'].forEach(id => {
@@ -3052,7 +2919,469 @@
         function updateGPCode() {
             const gpSelect = document.getElementById('gpName');
             const selectedOption = gpSelect.options[gpSelect.selectedIndex];
-            document.getElementById('gpCode').value = selectedOption.getAttribute('data-code') || '';
+            const gpCode = selectedOption.getAttribute('data-code') || '';
+            document.getElementById('gpCode').value = gpCode;
+            
+            // Mark this GP as selected
+            if (gpCode) {
+                const district = document.getElementById('district').value;
+                const block = document.getElementById('block').value;
+                selectedGPs[`${district}_${block}_${gpCode}`] = {
+                    date: new Date().toISOString(),
+                    user: currentUser.employeeId
+                };
+                localStorage.setItem('selectedGPs', JSON.stringify(selectedGPs));
+            }
+        }
+
+        // ============================================
+        // DATA SAVING
+        // ============================================
+        async function saveHOTO() {
+            console.log('💾 Saving HOTO data...');
+            
+            // Validate required fields
+            const requiredFields = [
+                'hotoDate', 'district', 'block', 'gpName', 'gpCode',
+                'equipmentMake', 'originalAddress', 'gponCabinet', 'earthing'
+            ];
+            
+            for (const fieldId of requiredFields) {
+                const field = document.getElementById(fieldId);
+                if (!field.value) {
+                    showToast(`Please fill ${fieldId.replace(/([A-Z])/g, ' $1').toLowerCase()}`, 'error');
+                    field.focus();
+                    return;
+                }
+            }
+            
+            const gpShifted = document.getElementById('gpShifted').value;
+            if (gpShifted === 'Yes') {
+                const custodianFields = ['custodianName', 'custodianMobile', 'custodianAddress', 'shiftedAddress'];
+                for (const fieldId of custodianFields) {
+                    const field = document.getElementById(fieldId);
+                    if (!field.value) {
+                        showToast(`Please fill ${fieldId.replace(/([A-Z])/g, ' $1').toLowerCase()} as GP is shifted`, 'error');
+                        field.focus();
+                        return;
+                    }
+                }
+            }
+            
+            const hotoRecord = {
+                id: editMode ? editingHOTOId : 'local_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                timestamp: new Date().toISOString(),
+                date: document.getElementById('hotoDate').value,
+                submittedBy: currentUser.name || currentUser.employeeId,
+                employeeId: currentUser.employeeId,
+                employeePhone: currentUser.phone || '',
+                
+                district: document.getElementById('district').value,
+                block: document.getElementById('block').value,
+                gpName: document.getElementById('gpName').value,
+                gpCode: document.getElementById('gpCode').value,
+                gpShifted: gpShifted,
+                
+                equipmentMake: document.getElementById('equipmentMake').value,
+                originalAddress: document.getElementById('originalAddress').value,
+                originalLat: document.getElementById('originalLat').value,
+                originalLong: document.getElementById('originalLong').value,
+                
+                shiftedAddress: gpShifted === 'Yes' ? document.getElementById('shiftedAddress').value : '',
+                shiftedLat: gpShifted === 'Yes' ? document.getElementById('shiftedLat').value : '',
+                shiftedLong: gpShifted === 'Yes' ? document.getElementById('shiftedLong').value : '',
+                
+                ontMake: document.getElementById('ontMake').value,
+                ontSerial: document.getElementById('ontSerial').value,
+                ontStatus: document.getElementById('ontStatus').value,
+                ontLocation: document.getElementById('ontLocation').value,
+                
+                ccuMake: document.getElementById('ccuMake').value,
+                ccuSerial: document.getElementById('ccuSerial').value,
+                ccuStatus: document.getElementById('ccuStatus').value,
+                ccuLocation: document.getElementById('ccuLocation').value,
+                
+                solarMake: document.getElementById('solarMake').value,
+                solarSerial: document.getElementById('solarSerial').value,
+                solarCapacity: document.getElementById('solarCapacity').value,
+                solarStatus: document.getElementById('solarStatus').value,
+                
+                batteryMake: document.getElementById('batteryMake').value,
+                batterySerial: document.getElementById('batterySerial').value,
+                batteryCapacity: document.getElementById('batteryCapacity').value,
+                batteryStatus: document.getElementById('batteryStatus').value,
+                
+                gponCabinet: document.getElementById('gponCabinet').value,
+                earthing: document.getElementById('earthing').value,
+                
+                custodianName: gpShifted === 'Yes' ? document.getElementById('custodianName').value : '',
+                custodianMobile: gpShifted === 'Yes' ? document.getElementById('custodianMobile').value : '',
+                custodianAddress: gpShifted === 'Yes' ? document.getElementById('custodianAddress').value : '',
+                
+                synced_to_cloud: false,
+                supabase_id: null
+            };
+            
+            try {
+                if (editMode) {
+                    const index = hotoData.findIndex(h => h.id === editingHOTOId);
+                    if (index !== -1) {
+                        hotoData[index] = hotoRecord;
+                        hotoRecord.synced_to_cloud = false;
+                    }
+                    editMode = false;
+                    editingHOTOId = null;
+                } else {
+                    hotoData.unshift(hotoRecord);
+                }
+                
+                localStorage.setItem('hotoData', JSON.stringify(hotoData));
+                console.log('✅ Saved locally');
+                
+                if (isOnline) {
+                    console.log('🌐 Attempting immediate sync...');
+                    const supabaseData = {
+                        hoto_date: hotoRecord.date,
+                        submitted_by: hotoRecord.submittedBy,
+                        employee_id: hotoRecord.employeeId,
+                        employee_phone: hotoRecord.employeePhone,
+                        district: hotoRecord.district,
+                        block: hotoRecord.block,
+                        gp_name: hotoRecord.gpName,
+                        gp_code: hotoRecord.gpCode,
+                        gp_shifted: hotoRecord.gpShifted,
+                        equipment_make: hotoRecord.equipmentMake,
+                        original_address: hotoRecord.originalAddress,
+                        original_lat: hotoRecord.originalLat,
+                        original_long: hotoRecord.originalLong,
+                        shifted_address: hotoRecord.shiftedAddress,
+                        shifted_lat: hotoRecord.shiftedLat,
+                        shifted_long: hotoRecord.shiftedLong,
+                        ont_make: hotoRecord.ontMake,
+                        ont_serial: hotoRecord.ontSerial,
+                        ont_status: hotoRecord.ontStatus,
+                        ont_location: hotoRecord.ontLocation,
+                        ccu_make: hotoRecord.ccuMake,
+                        ccu_serial: hotoRecord.ccuSerial,
+                        ccu_status: hotoRecord.ccuStatus,
+                        ccu_location: hotoRecord.ccuLocation,
+                        solar_make: hotoRecord.solarMake,
+                        solar_serial: hotoRecord.solarSerial,
+                        solar_capacity: hotoRecord.solarCapacity,
+                        solar_status: hotoRecord.solarStatus,
+                        battery_make: hotoRecord.batteryMake,
+                        battery_serial: hotoRecord.batterySerial,
+                        battery_capacity: hotoRecord.batteryCapacity,
+                        battery_status: hotoRecord.batteryStatus,
+                        gpon_cabinet: hotoRecord.gponCabinet,
+                        earthing: hotoRecord.earthing,
+                        custodian_name: hotoRecord.custodianName,
+                        custodian_mobile: hotoRecord.custodianMobile,
+                        custodian_address: hotoRecord.custodianAddress,
+                        created_at: hotoRecord.timestamp
+                    };
+                    
+                    const response = await supabase
+                        .from('hoto_data')
+                        .insert([supabaseData])
+                        .select()
+                        .single();
+                    
+                    if (!response.error && response.data) {
+                        hotoRecord.synced_to_cloud = true;
+                        hotoRecord.supabase_id = response.data.id;
+                        
+                        const index = hotoData.findIndex(h => h.id === hotoRecord.id);
+                        if (index !== -1) {
+                            hotoData[index] = hotoRecord;
+                            localStorage.setItem('hotoData', JSON.stringify(hotoData));
+                        }
+                        
+                        console.log('✅ Synced to Supabase immediately');
+                    } else {
+                        console.log('⚠️ Immediate sync failed, will retry later');
+                    }
+                }
+                
+                updateStats();
+                showSuccessModal();
+                
+                // Clear GP selection if auto-clear is enabled
+                const autoClear = localStorage.getItem('autoClearGP') === 'true';
+                clearForm(!autoClear);
+                
+                if (document.getElementById('view-tab').classList.contains('active')) {
+                    loadHOTOList();
+                }
+                
+            } catch (error) {
+                console.error('❌ Save error:', error);
+                showToast('Data saved locally. Will sync when online.', 'warning');
+                updateStats();
+                showSuccessModal();
+            }
+        }
+
+        function clearForm(keepSelection = false) {
+            if (!keepSelection) {
+                document.getElementById('district').selectedIndex = 0;
+                document.getElementById('block').selectedIndex = 0;
+                document.getElementById('block').disabled = true;
+                document.getElementById('gpName').selectedIndex = 0;
+                document.getElementById('gpName').disabled = true;
+                document.getElementById('gpCode').value = '';
+            }
+            
+            const fieldsToClear = [
+                'originalAddress', 'originalLat', 'originalLong',
+                'shiftedAddress', 'shiftedLat', 'shiftedLong',
+                'ontMake', 'ontSerial', 'ontStatus', 'ontLocation',
+                'ccuMake', 'ccuSerial', 'ccuStatus', 'ccuLocation',
+                'solarMake', 'solarSerial', 'solarCapacity', 'solarStatus',
+                'batteryMake', 'batterySerial', 'batteryCapacity', 'batteryStatus',
+                'custodianName', 'custodianMobile', 'custodianAddress'
+            ];
+            
+            fieldsToClear.forEach(id => {
+                const field = document.getElementById(id);
+                if (field) field.value = '';
+            });
+            
+            ['equipmentMake', 'gponCabinet', 'earthing'].forEach(id => {
+                const select = document.getElementById(id);
+                if (select) select.selectedIndex = 0;
+            });
+            
+            setGPShift(false);
+            editMode = false;
+            editingHOTOId = null;
+            
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('hotoDate').value = today;
+            
+            showToast('Form cleared', 'warning');
+        }
+
+        // ============================================
+        // ANALYTICS FUNCTIONS - FIXED
+        // ============================================
+        function loadAnalytics() {
+            console.log('📊 Loading analytics...');
+            
+            const today = new Date().toISOString().split('T')[0];
+            const todayHOTO = hotoData.filter(h => h.date === today);
+            const totalWorking = hotoData.filter(h => h.ontStatus === 'Working').length;
+            const totalNotWorking = hotoData.filter(h => h.ontStatus === 'Not Working').length;
+            const gpShiftedYes = hotoData.filter(h => h.gpShifted === 'Yes').length;
+            const gpShiftedNo = hotoData.filter(h => h.gpShifted === 'No').length;
+            
+            // Today's Dashboard
+            const todayDashboard = document.getElementById('todayDashboard');
+            if (todayDashboard) {
+                todayDashboard.innerHTML = `
+                    <div class="today-header">
+                        <div class="today-title">
+                            <i class="fas fa-chart-line"></i>
+                            Today's Report Dashboard
+                        </div>
+                        <div style="font-size: 14px; opacity: 0.9;">
+                            ${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        </div>
+                    </div>
+                    <div class="today-grid">
+                        <div class="today-stat">
+                            <div class="today-value">${todayHOTO.length}</div>
+                            <div class="today-label">Total Today</div>
+                        </div>
+                        <div class="today-stat">
+                            <div class="today-value">${todayHOTO.filter(h => h.ontStatus === 'Working').length}</div>
+                            <div class="today-label">Working Today</div>
+                        </div>
+                        <div class="today-stat">
+                            <div class="today-value">${todayHOTO.filter(h => h.gpShifted === 'Yes').length}</div>
+                            <div class="today-label">Shifted Today</div>
+                        </div>
+                        <div class="today-stat">
+                            <div class="today-value">${[...new Set(todayHOTO.map(h => h.district))].length}</div>
+                            <div class="today-label">Districts Today</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Quick Stats Today Section
+            const quickStatsDiv = document.getElementById('quickStats');
+            if (quickStatsDiv) {
+                quickStatsDiv.innerHTML = `
+                    <div class="quick-today-section">
+                        <div class="quick-today-header">
+                            <i class="fas fa-bolt"></i>
+                            <h4>Today's Quick Stats</h4>
+                        </div>
+                        <div class="quick-today-grid">
+                            <div class="quick-today-item">
+                                <div class="quick-today-value">${todayHOTO.length}</div>
+                                <div class="quick-today-label">Total HOTO</div>
+                            </div>
+                            <div class="quick-today-item">
+                                <div class="quick-today-value">${todayHOTO.filter(h => h.ontStatus === 'Working').length}</div>
+                                <div class="quick-today-label">Working</div>
+                            </div>
+                            <div class="quick-today-item">
+                                <div class="quick-today-value">${todayHOTO.filter(h => h.gpShifted === 'Yes').length}</div>
+                                <div class="quick-today-label">Shifted</div>
+                            </div>
+                            <div class="quick-today-item">
+                                <div class="quick-today-value">${[...new Set(todayHOTO.map(h => h.district))].length}</div>
+                                <div class="quick-today-label">Districts</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (typeof ApexCharts !== 'undefined') {
+                setTimeout(() => {
+                    initializeCharts();
+                }, 500);
+            }
+        }
+
+        function initializeCharts() {
+            Object.values(charts).forEach(chart => {
+                if (chart && typeof chart.destroy === 'function') {
+                    chart.destroy();
+                }
+            });
+            
+            charts = {};
+            
+            // Chart 1: Status Overview
+            const statusData = {
+                Working: hotoData.filter(h => h.ontStatus === 'Working').length,
+                'Not Working': hotoData.filter(h => h.ontStatus === 'Not Working').length,
+                'No Data': hotoData.filter(h => !h.ontStatus || h.ontStatus === '').length
+            };
+            
+            charts.statusChart = new ApexCharts(document.querySelector("#chartStatus"), {
+                series: Object.values(statusData),
+                chart: {
+                    type: 'donut',
+                    height: 200
+                },
+                labels: Object.keys(statusData),
+                colors: ['#10b981', '#ef4444', '#94a3b8'],
+                legend: {
+                    position: 'bottom'
+                },
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '60%'
+                        }
+                    }
+                }
+            });
+            charts.statusChart.render();
+            
+            // Chart 2: Equipment Distribution
+            const equipmentData = {};
+            hotoData.forEach(h => {
+                if (h.equipmentMake) {
+                    equipmentData[h.equipmentMake] = (equipmentData[h.equipmentMake] || 0) + 1;
+                }
+            });
+            
+            if (Object.keys(equipmentData).length > 0) {
+                charts.equipmentChart = new ApexCharts(document.querySelector("#chartEquipment"), {
+                    series: [{
+                        data: Object.entries(equipmentData).map(([name, count]) => ({ x: name, y: count }))
+                    }],
+                    chart: {
+                        type: 'bar',
+                        height: 200
+                    },
+                    plotOptions: {
+                        bar: {
+                            horizontal: true,
+                            borderRadius: 4
+                        }
+                    },
+                    colors: ['#3b82f6'],
+                    xaxis: {
+                        categories: Object.keys(equipmentData)
+                    }
+                });
+                charts.equipmentChart.render();
+            }
+            
+            // Chart 3: GP Shift Status
+            const shiftData = {
+                'Yes': hotoData.filter(h => h.gpShifted === 'Yes').length,
+                'No': hotoData.filter(h => h.gpShifted === 'No').length
+            };
+            
+            charts.shiftChart = new ApexCharts(document.querySelector("#chartShift"), {
+                series: Object.values(shiftData),
+                chart: {
+                    type: 'pie',
+                    height: 200
+                },
+                labels: Object.keys(shiftData),
+                colors: ['#f59e0b', '#3b82f6'],
+                legend: {
+                    position: 'bottom'
+                }
+            });
+            charts.shiftChart.render();
+            
+            // Quick Detailed Stats
+            const quickStatsDetailed = document.getElementById('quickStatsDetailed');
+            if (quickStatsDetailed) {
+                const total = hotoData.length;
+                const working = hotoData.filter(h => h.ontStatus === 'Working').length;
+                const notWorking = hotoData.filter(h => h.ontStatus === 'Not Working').length;
+                const shifted = hotoData.filter(h => h.gpShifted === 'Yes').length;
+                const original = hotoData.filter(h => h.gpShifted === 'No').length;
+                const districts = [...new Set(hotoData.map(h => h.district))].length;
+                const blocks = [...new Set(hotoData.map(h => h.block))].length;
+                const gps = [...new Set(hotoData.map(h => h.gpName))].length;
+                
+                quickStatsDetailed.innerHTML = `
+                    <div class="quick-today-item">
+                        <div class="quick-today-value">${total}</div>
+                        <div class="quick-today-label">Total Records</div>
+                    </div>
+                    <div class="quick-today-item">
+                        <div class="quick-today-value">${working}</div>
+                        <div class="quick-today-label">Working ONT</div>
+                    </div>
+                    <div class="quick-today-item">
+                        <div class="quick-today-value">${notWorking}</div>
+                        <div class="quick-today-label">Not Working</div>
+                    </div>
+                    <div class="quick-today-item">
+                        <div class="quick-today-value">${shifted}</div>
+                        <div class="quick-today-label">GP Shifted</div>
+                    </div>
+                    <div class="quick-today-item">
+                        <div class="quick-today-value">${original}</div>
+                        <div class="quick-today-label">At Original</div>
+                    </div>
+                    <div class="quick-today-item">
+                        <div class="quick-today-value">${districts}</div>
+                        <div class="quick-today-label">Districts</div>
+                    </div>
+                    <div class="quick-today-item">
+                        <div class="quick-today-value">${blocks}</div>
+                        <div class="quick-today-label">Blocks</div>
+                    </div>
+                    <div class="quick-today-item">
+                        <div class="quick-today-value">${gps}</div>
+                        <div class="quick-today-label">GPs</div>
+                    </div>
+                `;
+            }
         }
 
         // ============================================
@@ -3123,7 +3452,6 @@
             
             switchTab('collect');
             
-            // Populate form
             document.getElementById('hotoDate').value = hoto.date;
             document.getElementById('district').value = hoto.district;
             loadBlocks();
@@ -3137,7 +3465,6 @@
                     updateGPCode();
                     document.getElementById('gpCode').value = hoto.gpCode;
                     
-                    // Other fields
                     document.getElementById('equipmentMake').value = hoto.equipmentMake;
                     document.getElementById('originalAddress').value = hoto.originalAddress;
                     document.getElementById('originalLat').value = hoto.originalLat;
@@ -3189,7 +3516,6 @@
             
             const hoto = hotoData.find(h => h.id === id);
             
-            // Delete from Supabase if synced
             if (hoto && hoto.supabase_id && isOnline) {
                 try {
                     await supabase
@@ -3201,7 +3527,6 @@
                 }
             }
             
-            // Delete locally
             hotoData = hotoData.filter(h => h.id !== id);
             localStorage.setItem('hotoData', JSON.stringify(hotoData));
             loadHOTOList();
@@ -3258,6 +3583,66 @@
                 localStorage.removeItem('systemNote');
                 loadNote();
                 showToast('Note cleared', 'warning');
+            }
+        }
+
+        // ============================================
+        // STATS FUNCTIONS
+        // ============================================
+        function updateStats() {
+            loadHOTODataFromLocal();
+            const today = new Date().toISOString().split('T')[0];
+            const todayHOTO = hotoData.filter(h => h.date === today);
+            const todayUserHOTO = todayHOTO.filter(h => h.employeeId === currentUser.employeeId);
+            const workingONT = hotoData.filter(h => h.ontStatus === 'Working').length;
+            const syncedData = hotoData.filter(h => h.synced_to_cloud).length;
+            
+            document.getElementById('totalCount').textContent = hotoData.length;
+            document.getElementById('workingCount').textContent = workingONT;
+            document.getElementById('todayCount').textContent = todayHOTO.length;
+            document.getElementById('syncedCount').textContent = syncedData;
+        }
+
+        // ============================================
+        // TAB MANAGEMENT
+        // ============================================
+        function switchTab(tabName) {
+            if (currentUser.accessLevel === 'dataEntry' && (tabName === 'settings' || tabName === 'analytics')) {
+                showToast('Access denied', 'error');
+                return;
+            }
+            
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            const tabElement = document.getElementById(tabName + '-tab');
+            if (tabElement) {
+                tabElement.classList.add('active');
+            }
+            
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => {
+                if (btn.getAttribute('onclick') === `switchTab('${tabName}')`) {
+                    btn.classList.add('active');
+                }
+            });
+
+            if (tabName === 'analytics') {
+                setTimeout(() => {
+                    loadAnalytics();
+                }, 100);
+            } else if (tabName === 'view') {
+                setTimeout(() => {
+                    loadHOTOList();
+                }, 100);
+            } else if (tabName === 'settings' && (currentUser.accessLevel === 'full' || currentUser.isAdmin)) {
+                loadUsersTable();
+                loadDistrictAccessControl();
+                loadBlockAccessControl();
             }
         }
 
@@ -3351,14 +3736,12 @@
                 return;
             }
             
-            // Get selected districts
             const selectedDistricts = [];
             const districtCheckboxes = document.querySelectorAll('.district-checkbox:checked');
             districtCheckboxes.forEach(cb => {
                 selectedDistricts.push(cb.value);
             });
             
-            // Get selected blocks
             const selectedBlocks = [];
             const blockCheckboxes = document.querySelectorAll('.block-checkbox:checked');
             blockCheckboxes.forEach(cb => {
@@ -3372,7 +3755,6 @@
                 return;
             }
             
-            // Add user locally
             users[employeeId] = {
                 employeeId: employeeId,
                 name: name,
@@ -3389,7 +3771,6 @@
             
             localStorage.setItem('users', JSON.stringify(users));
             
-            // Also add to Supabase if online
             if (isOnline) {
                 try {
                     await supabase
@@ -3403,7 +3784,7 @@
                             access_level: accessLevel,
                             district_access: selectedDistricts,
                             block_access: selectedBlocks,
-                            password: employeeId, // Default password
+                            password: employeeId,
                             first_login: true
                         }]);
                 } catch (error) {
@@ -3413,14 +3794,12 @@
             
             loadUsersTable();
             
-            // Clear form
             document.getElementById('newEmployeeId').value = '';
             document.getElementById('newUserName').value = '';
             document.getElementById('newUserEmail').value = '';
             document.getElementById('newUserDesignation').value = '';
             document.getElementById('newUserPhone').value = '';
             
-            // Uncheck all checkboxes
             document.querySelectorAll('.district-checkbox, .block-checkbox').forEach(cb => {
                 cb.checked = false;
             });
@@ -3436,7 +3815,6 @@
             
             if (!confirm('Delete this user?')) return;
             
-            // Delete from Supabase if online
             if (isOnline) {
                 try {
                     await supabase
@@ -3448,44 +3826,11 @@
                 }
             }
             
-            // Delete locally
             let users = JSON.parse(localStorage.getItem('users') || '{}');
             delete users[employeeId];
             localStorage.setItem('users', JSON.stringify(users));
             loadUsersTable();
             showToast('User deleted', 'success');
-        }
-
-        // ============================================
-        // GP DATA MANAGEMENT
-        // ============================================
-        async function deleteMasterData() {
-            if (!confirm('Delete ALL GP master data? This cannot be undone.')) return;
-            
-            if (currentUser.accessLevel !== 'full' && !currentUser.isAdmin) {
-                showToast('Only administrators can delete master data', 'error');
-                return;
-            }
-            
-            // Delete from Supabase if online
-            if (isOnline) {
-                try {
-                    await supabase
-                        .from('gp_master_data')
-                        .delete()
-                        .neq('id', 0);
-                } catch (error) {
-                    console.error('Error deleting from Supabase:', error);
-                }
-            }
-            
-            // Delete locally
-            gpMasterData = [];
-            localStorage.setItem('gpMasterData', JSON.stringify(gpMasterData));
-            populateDistrictSelect();
-            loadDistrictAccessControl();
-            loadBlockAccessControl();
-            showToast('GP master data deleted', 'success');
         }
 
         // ============================================
@@ -3564,10 +3909,8 @@
                 }
             });
             
-            // Save locally
             localStorage.setItem('gpMasterData', JSON.stringify(gpMasterData));
             
-            // Save to Supabase if online
             if (isOnline && supabaseImports.length > 0) {
                 try {
                     await supabase
@@ -3601,6 +3944,109 @@
             
             XLSX.writeFile(workbook, 'GP_HOTO_Template.xlsx');
             showToast('Template downloaded', 'success');
+        }
+
+        async function deleteMasterData() {
+            if (!confirm('Delete ALL GP master data? This cannot be undone.')) return;
+            
+            if (currentUser.accessLevel !== 'full' && !currentUser.isAdmin) {
+                showToast('Only administrators can delete master data', 'error');
+                return;
+            }
+            
+            if (isOnline) {
+                try {
+                    await supabase
+                        .from('gp_master_data')
+                        .delete()
+                        .neq('id', 0);
+                } catch (error) {
+                    console.error('Error deleting from Supabase:', error);
+                }
+            }
+            
+            gpMasterData = [];
+            localStorage.setItem('gpMasterData', JSON.stringify(gpMasterData));
+            populateDistrictSelect();
+            loadDistrictAccessControl();
+            loadBlockAccessControl();
+            showToast('GP master data deleted', 'success');
+        }
+
+        // ============================================
+        // DATA CLEANUP FUNCTIONS
+        // ============================================
+        function removeDummyData() {
+            if (!confirm('Remove all dummy/sample data from the system?')) return;
+            
+            let changesMade = false;
+            
+            // Remove dummy GP data
+            const originalGPCount = gpMasterData.length;
+            gpMasterData = gpMasterData.filter(gp => 
+                !gp.gpName.includes('Sample') && 
+                !gp.gpName.includes('Test') &&
+                !gp.gpCode.includes('AMR-AJN-001') &&
+                !gp.gpCode.includes('AMR-AJN-002')
+            );
+            
+            if (gpMasterData.length < originalGPCount) {
+                localStorage.setItem('gpMasterData', JSON.stringify(gpMasterData));
+                changesMade = true;
+                console.log(`Removed ${originalGPCount - gpMasterData.length} dummy GP records`);
+            }
+            
+            // Remove dummy HOTO data
+            const originalHOTOCount = hotoData.length;
+            hotoData = hotoData.filter(h => 
+                !h.gpName.includes('Sample') &&
+                !h.gpName.includes('Test') &&
+                !h.gpCode.includes('AMR-AJN-001') &&
+                !h.gpCode.includes('AMR-AJN-002') &&
+                !h.employeeId.includes('demo') &&
+                !h.submittedBy.includes('Demo')
+            );
+            
+            if (hotoData.length < originalHOTOCount) {
+                localStorage.setItem('hotoData', JSON.stringify(hotoData));
+                changesMade = true;
+                console.log(`Removed ${originalHOTOCount - hotoData.length} dummy HOTO records`);
+            }
+            
+            // Remove dummy users (except admin)
+            let users = JSON.parse(localStorage.getItem('users') || '{}');
+            const originalUserCount = Object.keys(users).length;
+            
+            const usersToKeep = {};
+            for (const [key, user] of Object.entries(users)) {
+                if (key === 'admin' || 
+                    !user.employeeId.includes('demo') && 
+                    !user.name.includes('Demo') && 
+                    !user.name.includes('Test')) {
+                    usersToKeep[key] = user;
+                }
+            }
+            
+            if (Object.keys(usersToKeep).length < originalUserCount) {
+                localStorage.setItem('users', JSON.stringify(usersToKeep));
+                changesMade = true;
+                console.log(`Removed ${originalUserCount - Object.keys(usersToKeep).length} dummy users`);
+            }
+            
+            if (changesMade) {
+                showToast('Dummy data removed successfully', 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showToast('No dummy data found to remove', 'info');
+            }
+        }
+
+        function cleanupData() {
+            if (confirm('Clean up all sample/test data? This will remove dummy records but keep real data.')) {
+                removeDummyData();
+            }
         }
 
         // ============================================
@@ -3639,69 +4085,8 @@
             showToast('Data exported to Excel', 'success');
         }
 
-        // ============================================
-        // STATS AND ANALYTICS
-        // ============================================
-        function updateStats() {
-            loadHOTODataFromLocal();
-            const today = new Date().toISOString().split('T')[0];
-            const todayHOTO = hotoData.filter(h => h.date === today);
-            const todayUserHOTO = todayHOTO.filter(h => h.employeeId === currentUser.employeeId);
-            const workingONT = hotoData.filter(h => h.ontStatus === 'Working').length;
-            const syncedData = hotoData.filter(h => h.synced_to_cloud).length;
-            
-            document.getElementById('totalCount').textContent = hotoData.length;
-            document.getElementById('workingCount').textContent = workingONT;
-            document.getElementById('todayCount').textContent = todayHOTO.length;
-            document.getElementById('syncedCount').textContent = syncedData;
-        }
-
-        // ============================================
-        // TAB MANAGEMENT
-        // ============================================
-        function switchTab(tabName) {
-            // Check permissions
-            if (currentUser.accessLevel === 'dataEntry' && (tabName === 'settings' || tabName === 'analytics')) {
-                showToast('Access denied', 'error');
-                return;
-            }
-            
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-
-            // Show selected tab
-            const tabElement = document.getElementById(tabName + '-tab');
-            if (tabElement) {
-                tabElement.classList.add('active');
-            }
-            
-            // Activate button
-            const buttons = document.querySelectorAll('.tab-btn');
-            buttons.forEach(btn => {
-                if (btn.getAttribute('onclick') === `switchTab('${tabName}')`) {
-                    btn.classList.add('active');
-                }
-            });
-
-            // Load data for tabs
-            if (tabName === 'analytics') {
-                setTimeout(() => {
-                    loadAnalytics();
-                }, 100);
-            } else if (tabName === 'view') {
-                setTimeout(() => {
-                    loadHOTOList();
-                }, 100);
-            } else if (tabName === 'settings' && (currentUser.accessLevel === 'full' || currentUser.isAdmin)) {
-                loadUsersTable();
-                loadDistrictAccessControl();
-                loadBlockAccessControl();
-            }
+        function exportToPDF() {
+            showToast('PDF export feature will be implemented soon', 'info');
         }
 
         // ============================================
@@ -3739,9 +4124,6 @@
             clearForm(false);
         }
 
-        // ============================================
-        // DATA MANAGEMENT
-        // ============================================
         function backupData() {
             const data = {
                 hotoData: hotoData,
@@ -3765,18 +4147,72 @@
             showToast('Backup created', 'success');
         }
 
-        function clearAllData() {
-            if (confirm('Delete ALL data including HOTO records, GP data, and users?')) {
-                localStorage.clear();
-                showToast('All data cleared', 'success');
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
+        function restoreData() {
+            showToast('Restore feature will be implemented soon', 'info');
+        }
+
+        function setAccessLevel(level) {
+            document.getElementById('userAccessLevel').value = level;
+            const dataEntryBtn = document.querySelector('.access-btn[onclick="setAccessLevel(\'dataEntry\')"]');
+            const fullAccessBtn = document.querySelector('.access-btn[onclick="setAccessLevel(\'full\')"]');
+            
+            if (level === 'dataEntry') {
+                dataEntryBtn.classList.add('active');
+                fullAccessBtn.classList.remove('active');
+            } else {
+                dataEntryBtn.classList.remove('active');
+                fullAccessBtn.classList.add('active');
             }
+            
+            showToast(`Access level set to ${level === 'full' ? 'Full Access' : 'Data Entry Only'}`, 'info');
+        }
+
+        function updateUserProfile() {
+            const name = document.getElementById('profileName').value.trim();
+            const designation = document.getElementById('profileDesignation').value.trim();
+            const phone = document.getElementById('profilePhone').value.trim();
+            const accessLevel = document.getElementById('userAccessLevel').value;
+            
+            if (!name) {
+                showToast('Name is required', 'error');
+                return;
+            }
+            
+            currentUser.name = name;
+            currentUser.designation = designation;
+            currentUser.phone = phone;
+            currentUser.accessLevel = accessLevel;
+            
+            let users = JSON.parse(localStorage.getItem('users') || '{}');
+            users[currentUser.employeeId] = currentUser;
+            localStorage.setItem('users', JSON.stringify(users));
+            localStorage.setItem('loggedInUser', JSON.stringify(currentUser));
+            
+            document.getElementById('currentUserName').textContent = currentUser.name;
+            document.getElementById('sidebarUserName').textContent = currentUser.name;
+            document.getElementById('currentUserRole').textContent = `(${accessLevel === 'full' ? 'Full Access' : 'Data Entry Only'})`;
+            
+            if (isOnline) {
+                try {
+                    supabase
+                        .from('users')
+                        .update({
+                            full_name: name,
+                            designation: designation,
+                            phone_number: phone,
+                            access_level: accessLevel
+                        })
+                        .eq('employee_id', currentUser.employeeId);
+                } catch (error) {
+                    console.error('Error updating profile in Supabase:', error);
+                }
+            }
+            
+            showToast('Profile updated successfully', 'success');
         }
 
         // ============================================
-        // INITIALIZE ON LOAD
+        // INITIALIZATION COMPLETE
         // ============================================
         console.log('🚀 GP HOTO System loaded');
         
